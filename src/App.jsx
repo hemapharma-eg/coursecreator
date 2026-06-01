@@ -141,6 +141,61 @@ const EditorToolbar = ({ isStudentMode }) => {
         e.target.value = '';
     };
 
+    const handleTableCmd = (cmd) => {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        let node = sel.getRangeAt(0).startContainer;
+        while (node && node.nodeName !== 'TD' && node.nodeName !== 'TH') {
+            node = node.parentNode;
+        }
+        if (!node) { alert("Please click inside a table cell first."); return; }
+        
+        const tr = node.parentNode;
+        const cellIndex = Array.from(tr.children).indexOf(node);
+
+        if (cmd === 'addRow') {
+            const newRow = document.createElement('tr');
+            for (let i = 0; i < tr.children.length; i++) {
+                const td = document.createElement(node.nodeName);
+                td.className = "border border-slate-600 p-2";
+                td.innerHTML = "New Cell";
+                newRow.appendChild(td);
+            }
+            tr.parentNode.insertBefore(newRow, tr.nextSibling);
+        } else if (cmd === 'delRow') {
+            tr.parentNode.removeChild(tr);
+        } else if (cmd === 'addCol') {
+            Array.from(tr.parentNode.children).forEach(row => {
+                const td = document.createElement(row.children[cellIndex]?.nodeName || 'td');
+                td.className = "border border-slate-600 p-2";
+                td.innerHTML = "New Cell";
+                if (row.children[cellIndex]) {
+                    row.insertBefore(td, row.children[cellIndex].nextSibling);
+                } else {
+                    row.appendChild(td);
+                }
+            });
+        } else if (cmd === 'delCol') {
+            Array.from(tr.parentNode.children).forEach(row => {
+                if (row.children[cellIndex]) row.removeChild(row.children[cellIndex]);
+            });
+        } else if (cmd === 'mergeRight') {
+            if (node.nextSibling) {
+                node.colSpan = (node.colSpan || 1) + (node.nextSibling.colSpan || 1);
+                node.parentNode.removeChild(node.nextSibling);
+            }
+        } else if (cmd === 'split') {
+            if (node.colSpan > 1) {
+                const td = document.createElement(node.nodeName);
+                td.className = "border border-slate-600 p-2";
+                td.innerHTML = "Split Cell";
+                td.colSpan = Math.floor(node.colSpan / 2);
+                node.colSpan = Math.ceil(node.colSpan / 2);
+                tr.insertBefore(td, node.nextSibling);
+            }
+        }
+    };
+
     const btnClass = "p-1.5 hover:bg-slate-700 rounded text-slate-300 transition-colors";
 
     return (
@@ -157,6 +212,17 @@ const EditorToolbar = ({ isStudentMode }) => {
             <button onMouseDown={e => { e.preventDefault(); execCmd('insertOrderedList'); }} className={btnClass} title="Numbered List"><ListOrdered className="w-4 h-4" /></button>
             <div className="w-px h-5 bg-slate-700 mx-2" />
             <button onMouseDown={e => { e.preventDefault(); insertTable(); }} className={btnClass} title="Insert Table"><Type className="w-4 h-4 mr-1 inline" />Table</button>
+            <div className="w-px h-5 bg-slate-700 mx-2" />
+            <div className="flex space-x-1 items-center bg-slate-800 p-1 rounded">
+                <span className="text-[10px] text-slate-400 font-bold px-1">TABLE TOOLS</span>
+                <button onMouseDown={e => { e.preventDefault(); handleTableCmd('addRow'); }} className={btnClass} title="Add Row Below">Row+</button>
+                <button onMouseDown={e => { e.preventDefault(); handleTableCmd('delRow'); }} className={btnClass} title="Delete Row">Row-</button>
+                <button onMouseDown={e => { e.preventDefault(); handleTableCmd('addCol'); }} className={btnClass} title="Add Col Right">Col+</button>
+                <button onMouseDown={e => { e.preventDefault(); handleTableCmd('delCol'); }} className={btnClass} title="Delete Col">Col-</button>
+                <button onMouseDown={e => { e.preventDefault(); handleTableCmd('mergeRight'); }} className={btnClass} title="Merge Right">Merge</button>
+                <button onMouseDown={e => { e.preventDefault(); handleTableCmd('split'); }} className={btnClass} title="Split Cell">Split</button>
+            </div>
+            <div className="w-px h-5 bg-slate-700 mx-2" />
             <label className={`${btnClass} cursor-pointer flex items-center`} title="Insert Inline Image">
                 <ImagePlus className="w-4 h-4 mr-1" /> Image
                 <input type="file" accept="image/*" className="hidden" onChange={insertImageInline} />
@@ -189,6 +255,9 @@ export default function App() {
     const [toast, setToast] = useState(null);
     const [confirmModal, setConfirmModal] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    
+    const [isSharing, setIsSharing] = useState(false);
+    const [shareUrl, setShareUrl] = useState(null);
 
     const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('user_gemini_api_key') || '');
     const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
@@ -232,6 +301,23 @@ export default function App() {
                 setProject(parsed); 
                 if (parsed.isStudentEdition) setIsStudentMode(true);
             } catch(e) { console.error("Error loading save"); }
+        }
+    }, []);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseId = urlParams.get('course');
+        if (courseId) {
+            fetch(`https://jsonblob.com/api/jsonBlob/${courseId}`)
+                .then(r => r.json())
+                .then(parsed => {
+                    setProject(parsed);
+                    if (parsed.chapters && parsed.chapters.length > 0) setActiveView(parsed.chapters[0].id);
+                    if (parsed.isStudentEdition) setIsStudentMode(true);
+                    showMessage("Course loaded from link!", "success");
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                })
+                .catch(e => showMessage("Failed to load course from link.", "error"));
         }
     }, []);
 
@@ -335,10 +421,18 @@ export default function App() {
     };
 
     const deleteChapter = (id) => {
-        const remaining = project.chapters.filter(c => c.id !== id);
-        setProject({ ...project, chapters: remaining });
-        if (activeView === id) setActiveView(remaining.length > 0 ? remaining[0].id : 'book');
-        showMessage("Chapter deleted.");
+        setConfirmModal({
+            title: "Delete Module",
+            message: "Are you sure you want to permanently delete this module? This cannot be undone.",
+            onConfirm: () => {
+                const remaining = project.chapters.filter(c => c.id !== id);
+                setProject({ ...project, chapters: remaining });
+                if (activeView === id) setActiveView(remaining.length > 0 ? remaining[0].id : 'book');
+                showMessage("Chapter deleted.");
+                setConfirmModal(null);
+            },
+            onCancel: () => setConfirmModal(null)
+        });
     };
 
     const handleFileUpload = (e) => {
@@ -445,6 +539,75 @@ export default function App() {
         link.download = `${project.title.replace(/\s+/g, '_')}_student.json`; link.click();
     };
 
+    const handleCreateShareLink = async () => {
+        setIsSharing(true);
+        try {
+            const studentCleaned = project.chapters.map(chap => { const { customPrompt, sources, ...safe } = chap; return { ...safe, sources: [] }; });
+            const payload = { title: project.title, language: project.language, chapters: studentCleaned, isStudentEdition: true };
+            const response = await fetch("https://jsonblob.com/api/jsonBlob", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            if (response.ok) {
+                const location = response.headers.get("Location");
+                const id = location ? location.split('/').pop() : response.headers.get("x-jsonblob-id");
+                if (id) {
+                    const link = `${window.location.origin}${window.location.pathname}?course=${id}`;
+                    setShareUrl(link);
+                } else {
+                    showMessage("Failed to retrieve share ID.", "error");
+                }
+            } else {
+                showMessage("Failed to create share link.", "error");
+            }
+        } catch (e) {
+            showMessage("Network error during sharing.", "error");
+        }
+        setIsSharing(false);
+    };
+
+    const updateMCQ = (mcqId, field, value) => {
+        const activeChap = project.chapters.find(c => c.id === activeView);
+        if (!activeChap) return;
+        const updatedMCQs = activeChap.mcqs.map(q => q.id === mcqId ? { ...q, [field]: value } : q);
+        updateChapter(activeChap.id, { mcqs: updatedMCQs });
+    };
+    
+    const updateMCQOption = (mcqId, optIdx, value) => {
+        const activeChap = project.chapters.find(c => c.id === activeView);
+        if (!activeChap) return;
+        const updatedMCQs = activeChap.mcqs.map(q => {
+            if (q.id === mcqId) {
+                const newOpts = [...q.options];
+                newOpts[optIdx] = value;
+                return { ...q, options: newOpts };
+            }
+            return q;
+        });
+        updateChapter(activeChap.id, { mcqs: updatedMCQs });
+    };
+
+    const addBlankMCQ = () => {
+        const activeChap = project.chapters.find(c => c.id === activeView);
+        if (!activeChap) return;
+        const newMCQ = { id: 'mcq_' + Date.now(), question: "New Question?", options: ["Option A", "Option B", "Option C", "Option D"], correctOptionIndex: 0, explanation: "Explanation here." };
+        updateChapter(activeChap.id, { mcqs: [...(activeChap.mcqs || []), newMCQ] });
+    };
+
+    const deleteMCQ = (mcqId) => {
+        setConfirmModal({
+            title: "Delete Question",
+            message: "Are you sure you want to delete this question?",
+            onConfirm: () => {
+                const activeChap = project.chapters.find(c => c.id === activeView);
+                updateChapter(activeChap.id, { mcqs: activeChap.mcqs.filter(q => q.id !== mcqId) });
+                setConfirmModal(null);
+            },
+            onCancel: () => setConfirmModal(null)
+        });
+    };
+
     const handleDownloadWord = (activeChapter) => {
         const customStyle = `<style>
             body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #333; margin: 40px; }
@@ -531,7 +694,8 @@ export default function App() {
                     {!project.isStudentEdition && (
                         <div className="grid grid-cols-1 gap-2 pt-1">
                             <button onClick={exportInstructorJSON} className="flex items-center space-x-2 text-[11px] text-slate-300 p-2 rounded bg-slate-800/40 hover:bg-slate-800 border border-slate-800"><Download className="w-3.5 h-3.5 text-blue-400" /><span>Save Backup (Teacher)</span></button>
-                            <button onClick={exportStudentJSON} className="flex items-center space-x-2 text-[11px] text-amber-300 p-2 rounded bg-amber-950/20 hover:bg-amber-950/40 border border-amber-900/40"><Sparkles className="w-3.5 h-3.5 text-amber-400" /><span>Export for Students</span></button>
+                            <button onClick={exportStudentJSON} className="flex items-center space-x-2 text-[11px] text-amber-300 p-2 rounded bg-amber-950/20 hover:bg-amber-950/40 border border-amber-900/40"><Download className="w-3.5 h-3.5 text-amber-400" /><span>Export for Students</span></button>
+                            <button onClick={handleCreateShareLink} disabled={isSharing} className="flex items-center space-x-2 text-[11px] text-emerald-300 p-2 rounded bg-emerald-950/20 hover:bg-emerald-950/40 border border-emerald-900/40"><ExternalLink className="w-3.5 h-3.5 text-emerald-400" /><span>{isSharing ? 'Generating...' : 'Create Share Link'}</span></button>
                         </div>
                     )}
                 </div>
@@ -600,29 +764,55 @@ export default function App() {
                             )}
 
                             {activeTab === 'quiz' && (
-                                <div className="max-w-3xl mx-auto">
+                                <div className="max-w-3xl mx-auto pb-20 mt-8">
+                                    {(!isStudentMode) && (
+                                        <div className="flex justify-end mb-4 mx-4">
+                                            <button onClick={addBlankMCQ} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center"><Plus className="w-4 h-4 mr-1"/> Add Question</button>
+                                        </div>
+                                    )}
                                     {activeChapter.mcqs.length > 0 ? (
-                                        <div className="space-y-8">
+                                        <div className="space-y-8 px-4">
                                             {activeChapter.mcqs.map((mcq, idx) => (
-                                                <div key={mcq.id} className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                                                    <h3 className="text-lg font-bold mb-4">{idx + 1}. {mcq.question}</h3>
+                                                <div key={mcq.id} className="bg-slate-800 rounded-xl p-6 border border-slate-700 relative group">
+                                                    {!isStudentMode && (
+                                                        <button onClick={() => deleteMCQ(mcq.id)} className="absolute top-4 right-4 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100"><Trash2 className="w-5 h-5"/></button>
+                                                    )}
+                                                    {isStudentMode ? <h3 className="text-lg font-bold mb-4">{idx + 1}. {mcq.question}</h3> : (
+                                                        <div className="mb-4">
+                                                            <label className="text-xs text-slate-400 font-bold uppercase mb-1 block">Question {idx + 1}</label>
+                                                            <textarea value={mcq.question} onChange={(e) => updateMCQ(mcq.id, 'question', e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white outline-none focus:border-indigo-500 min-h-[60px]" />
+                                                        </div>
+                                                    )}
                                                     <div className="space-y-3">
                                                         {mcq.options.map((opt, oIdx) => (
-                                                            <div key={oIdx} className={`p-3 rounded-lg border cursor-pointer flex items-center space-x-3 ${isStudentMode ? quizSubmitted ? oIdx === mcq.correctOptionIndex ? 'bg-emerald-900/30 border-emerald-500/50' : studentAnswers[mcq.id] === oIdx ? 'bg-red-900/30 border-red-500/50' : 'bg-slate-900/50 border-slate-700' : studentAnswers[mcq.id] === oIdx ? 'bg-indigo-900/40 border-indigo-500/50' : 'bg-slate-900/50 border-slate-700' : oIdx === mcq.correctOptionIndex ? 'bg-emerald-900/30 border-emerald-500/50 text-emerald-200' : 'bg-slate-900/50 border-slate-700'}`} onClick={() => { if (isStudentMode && !quizSubmitted) setStudentAnswers(prev => ({ ...prev, [mcq.id]: oIdx })); }}>
-                                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${(isStudentMode && quizSubmitted && oIdx === mcq.correctOptionIndex) || (!isStudentMode && oIdx === mcq.correctOptionIndex) ? 'border-emerald-500 bg-emerald-500' : studentAnswers[mcq.id] === oIdx ? 'border-indigo-500 bg-indigo-500' : 'border-slate-600'}`}>
-                                                                    {((isStudentMode && quizSubmitted && oIdx === mcq.correctOptionIndex) || (!isStudentMode && oIdx === mcq.correctOptionIndex)) && <CheckCircle className="w-3 h-3 text-white" />}
-                                                                </div>
-                                                                <span>{opt}</span>
+                                                            <div key={oIdx} className={`p-3 rounded-lg border flex items-center space-x-3 ${isStudentMode ? quizSubmitted ? oIdx === mcq.correctOptionIndex ? 'bg-emerald-900/30 border-emerald-500/50' : studentAnswers[mcq.id] === oIdx ? 'bg-red-900/30 border-red-500/50' : 'bg-slate-900/50 border-slate-700' : studentAnswers[mcq.id] === oIdx ? 'bg-indigo-900/40 border-indigo-500/50 cursor-pointer' : 'bg-slate-900/50 border-slate-700 cursor-pointer' : oIdx === mcq.correctOptionIndex ? 'bg-emerald-900/30 border-emerald-500/50 text-emerald-200' : 'bg-slate-900/50 border-slate-700'}`} onClick={() => { if (isStudentMode && !quizSubmitted) setStudentAnswers(prev => ({ ...prev, [mcq.id]: oIdx })); }}>
+                                                                {!isStudentMode ? (
+                                                                    <input type="radio" name={`correct_${mcq.id}`} checked={mcq.correctOptionIndex === oIdx} onChange={() => updateMCQ(mcq.id, 'correctOptionIndex', oIdx)} className="w-4 h-4 cursor-pointer" />
+                                                                ) : (
+                                                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${(isStudentMode && quizSubmitted && oIdx === mcq.correctOptionIndex) || (!isStudentMode && oIdx === mcq.correctOptionIndex) ? 'border-emerald-500 bg-emerald-500' : studentAnswers[mcq.id] === oIdx ? 'border-indigo-500 bg-indigo-500' : 'border-slate-600'}`}>
+                                                                        {((isStudentMode && quizSubmitted && oIdx === mcq.correctOptionIndex) || (!isStudentMode && oIdx === mcq.correctOptionIndex)) && <CheckCircle className="w-3 h-3 text-white" />}
+                                                                    </div>
+                                                                )}
+                                                                {isStudentMode ? <span>{opt}</span> : (
+                                                                    <input value={opt} onChange={(e) => updateMCQOption(mcq.id, oIdx, e.target.value)} className="w-full bg-transparent text-white outline-none focus:border-b focus:border-indigo-500" />
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
-                                                    {(quizSubmitted || !isStudentMode) && mcq.explanation && <div className="mt-4 p-4 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-300"><strong>Explanation:</strong> {mcq.explanation}</div>}
+                                                    {(quizSubmitted || !isStudentMode) && (
+                                                        <div className="mt-4 p-4 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-300 flex flex-col">
+                                                            <strong className="mb-1 text-slate-400 text-xs uppercase">Feedback / Explanation:</strong>
+                                                            {isStudentMode ? mcq.explanation : (
+                                                                <textarea value={mcq.explanation} onChange={(e) => updateMCQ(mcq.id, 'explanation', e.target.value)} className="w-full bg-transparent text-white outline-none focus:border-indigo-500 border border-transparent hover:border-slate-700 p-1 rounded min-h-[60px]" />
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                             {isStudentMode && !quizSubmitted && <button onClick={() => setQuizSubmitted(true)} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg">Submit Answers</button>}
                                         </div>
                                     ) : (
-                                        <div className="text-center p-12 bg-slate-800/30 rounded-2xl border border-dashed border-slate-700"><ListChecks className="w-12 h-12 text-slate-500 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-300">No Quiz Available</h3></div>
+                                        <div className="text-center p-12 bg-slate-800/30 rounded-2xl border border-dashed border-slate-700 mx-4"><ListChecks className="w-12 h-12 text-slate-500 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-300">No Quiz Available</h3></div>
                                     )}
                                 </div>
                             )}
@@ -745,6 +935,24 @@ export default function App() {
                                 <button onClick={handleTestApiKey} disabled={isTestingKey || !apiKeyInput.trim()} className="flex-1 py-2 px-4 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 font-medium rounded-lg text-sm transition-colors">{isTestingKey ? 'Testing...' : 'Test Connection'}</button>
                                 <button onClick={() => handleSaveApiKey(apiKeyInput)} className="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-colors shadow-lg">Save Key</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Share Link Modal */}
+            {shareUrl && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-lg w-full shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold flex items-center"><ExternalLink className="w-5 h-5 mr-2 text-emerald-400" />Student Link Created!</h3>
+                            <button onClick={() => setShareUrl(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+                        </div>
+                        <p className="text-slate-300 mb-4 text-sm">Share this secure link with your students. They can open it directly in their browser without downloading any files!</p>
+                        <input type="text" readOnly value={shareUrl} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-emerald-400 font-mono text-sm mb-6 focus:outline-none focus:border-emerald-500" />
+                        <div className="flex space-x-3">
+                            <button onClick={() => { navigator.clipboard.writeText(shareUrl); showMessage("Copied to clipboard!", "success"); }} className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors shadow-lg flex items-center justify-center">Copy Link</button>
                         </div>
                     </div>
                 </div>
