@@ -77,9 +77,22 @@ const MenuBar = ({ editor, isStudentMode }) => {
             <div className="w-px h-4 bg-slate-200 mx-1" />
             
             <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className={`${btnClass} text-[10px] font-semibold`} title="Insert Table"><Type className="w-3.5 h-3.5" /></button>
-            <div className="relative group">
-                <button className={`${btnClass} flex items-center text-[10px] font-semibold`} title="Table Editor">TBL ▼</button>
-                <div className="absolute hidden group-hover:flex flex-col top-full left-0 pt-1 z-50 w-32">
+            <div className="relative">
+                <button 
+                    onClick={() => {
+                        const menu = document.getElementById('table-editor-menu');
+                        if (menu) menu.classList.toggle('hidden');
+                    }}
+                    onBlur={() => {
+                        setTimeout(() => {
+                            const menu = document.getElementById('table-editor-menu');
+                            if (menu) menu.classList.add('hidden');
+                        }, 200);
+                    }}
+                    className={`${btnClass} flex items-center text-[10px] font-semibold`} 
+                    title="Table Editor"
+                >TBL ▼</button>
+                <div id="table-editor-menu" className="absolute hidden flex flex-col top-full left-0 mt-1 z-50 w-32">
                     <div className="flex flex-col bg-white border border-slate-200 shadow-xl rounded-lg py-1">
                         <button onClick={() => editor.chain().focus().addRowAfter().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Row Below</button>
                         <button onClick={() => editor.chain().focus().deleteRow().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Row</button>

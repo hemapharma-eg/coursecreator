@@ -328,20 +328,34 @@ INSTRUCTIONS:
 
     const handleDownloadWord = () => {
         if (!activeChapter) return;
-        const contentHtml = activeChapter.blocks.map(b => b.content).join('<br/>');
+        let contentHtml = activeChapter.blocks.map(b => b.content).join('<br/>');
+        
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(contentHtml, 'text/html');
+        const fracs = doc.querySelectorAll('.frac');
+        fracs.forEach(frac => {
+            const num = frac.querySelector('.num')?.innerHTML || '';
+            const den = frac.querySelector('.den')?.innerHTML || '';
+            const table = doc.createElement('table');
+            // Word natively supports these table styles for inline fraction layout
+            table.setAttribute('style', 'display:inline-table; vertical-align:middle; text-align:center; border-collapse:collapse; margin:0 4px; border:none; line-height:1.2;');
+            table.innerHTML = `<tbody><tr><td style="border-bottom:1px solid black; padding:0 2px; font-size:11pt; border-top:none; border-left:none; border-right:none;">${num}</td></tr><tr><td style="padding:0 2px; border:none; font-size:11pt;">${den}</td></tr></tbody>`;
+            frac.parentNode.replaceChild(table, frac);
+        });
+        contentHtml = doc.body.innerHTML;
+        
         const inlineCss = `
         <style>
             table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; background-color: #ffffff; font-family: sans-serif; }
             th { background: #f8fafc; font-weight: bold; border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
             td { border: 1px solid #e2e8f0; padding: 8px 12px; }
-            .frac { display: inline-block; vertical-align: middle; text-align: center; margin: 0 4px; }
-            .frac .num { display: block; border-bottom: 1px solid #000; padding: 0 2px; }
-            .frac .den { display: block; padding: 0 2px; }
             h1 { font-size: 24pt; border-left: 4px solid #6366f1; padding-left: 10px; margin-top: 1.5em; margin-bottom: 0.75em; }
             h2 { font-size: 18pt; margin-top: 1.5em; margin-bottom: 0.75em; }
             h3 { font-size: 14pt; margin-top: 1.5em; margin-bottom: 0.75em; }
             blockquote { border-left: 4px solid #818cf8; padding: 10px 15px; background: #f8fafc; font-style: italic; }
             p { line-height: 1.6; margin-bottom: 1em; }
+            sub { vertical-align: sub; font-size: smaller; }
+            sup { vertical-align: super; font-size: smaller; }
         </style>`;
         const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title>" + inlineCss + "</head><body>";
         const postHtml = "</body></html>";
