@@ -8,14 +8,36 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { Image } from '@tiptap/extension-image';
 import { Underline } from '@tiptap/extension-underline';
 import { TextAlign } from '@tiptap/extension-text-align';
-import { Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Type, ImagePlus } from 'lucide-react';
-import { Mark, mergeAttributes } from '@tiptap/core';
+import { Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Type, ImagePlus, Superscript as SuperscriptIcon, Subscript as SubscriptIcon } from 'lucide-react';
+import { Node, mergeAttributes } from '@tiptap/core';
+import { Superscript } from '@tiptap/extension-superscript';
+import { Subscript } from '@tiptap/extension-subscript';
 
-const CustomSpan = Mark.create({
-    name: 'customSpan',
-    addAttributes() { return { class: { default: null } }; },
-    parseHTML() { return [{ tag: 'span[class]' }, { tag: 'div[class]' }]; },
-    renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes), 0]; },
+const FractionNode = Node.create({
+    name: 'fraction',
+    group: 'inline',
+    inline: true,
+    content: 'inline*',
+    parseHTML() { return [{ tag: 'span.frac' }, { tag: 'div.frac' }]; },
+    renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes, { class: 'frac' }), 0]; },
+});
+
+const NumeratorNode = Node.create({
+    name: 'numerator',
+    group: 'inline',
+    inline: true,
+    content: 'inline*',
+    parseHTML() { return [{ tag: 'span.num' }, { tag: 'div.num' }]; },
+    renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes, { class: 'num' }), 0]; },
+});
+
+const DenominatorNode = Node.create({
+    name: 'denominator',
+    group: 'inline',
+    inline: true,
+    content: 'inline*',
+    parseHTML() { return [{ tag: 'span.den' }, { tag: 'div.den' }]; },
+    renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes, { class: 'den' }), 0]; },
 });
 
 const MenuBar = ({ editor, isStudentMode }) => {
@@ -39,6 +61,8 @@ const MenuBar = ({ editor, isStudentMode }) => {
             <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? activeBtnClass : btnClass} title="Bold"><Bold className="w-3.5 h-3.5" /></button>
             <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? activeBtnClass : btnClass} title="Italic"><Italic className="w-3.5 h-3.5" /></button>
             <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={editor.isActive('underline') ? activeBtnClass : btnClass} title="Underline"><UnderlineIcon className="w-3.5 h-3.5" /></button>
+            <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={editor.isActive('superscript') ? activeBtnClass : btnClass} title="Superscript"><SuperscriptIcon className="w-3.5 h-3.5" /></button>
+            <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={editor.isActive('subscript') ? activeBtnClass : btnClass} title="Subscript"><SubscriptIcon className="w-3.5 h-3.5" /></button>
             <div className="w-px h-4 bg-slate-200 mx-1" />
             <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? activeBtnClass : btnClass} title="Heading 1"><Heading1 className="w-3.5 h-3.5" /></button>
             <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? activeBtnClass : btnClass} title="Heading 2"><Heading2 className="w-3.5 h-3.5" /></button>
@@ -82,7 +106,11 @@ export default function RichTextEditor({ content, onChange, readOnly }) {
         extensions: [
             StarterKit,
             Underline,
-            CustomSpan,
+            Superscript,
+            Subscript,
+            FractionNode,
+            NumeratorNode,
+            DenominatorNode,
             Image.configure({ inline: true, allowBase64: true }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Table.configure({ resizable: true }),
