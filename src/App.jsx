@@ -598,7 +598,14 @@ export default function App() {
     const handleCreateShareLink = async () => {
         setIsSharing(true);
         try {
-            const studentCleaned = project.chapters.map(chap => { const { customPrompt, sources, ...safe } = chap; return { ...safe, sources: [] }; });
+            const studentCleaned = project.chapters.map(chap => {
+                const { customPrompt, sources, ...safe } = chap;
+                const lightBlocks = (safe.blocks || []).map(b => ({
+                    ...b,
+                    content: (b.content || '').replace(/<img[^>]*src="data:image\/[^"]*"[^>]*>/gi, '<p style="color:#6366f1;font-style:italic">[Image removed for link sharing — use Export for full version]</p>')
+                }));
+                return { ...safe, blocks: lightBlocks, sources: [] };
+            });
             const payload = { title: project.title, language: project.language, chapters: studentCleaned, isStudentEdition: true };
             const payloadString = JSON.stringify(payload);
             const compressed = LZString.compressToBase64(payloadString);
@@ -607,7 +614,7 @@ export default function App() {
             const finalPayloadString = JSON.stringify(finalPayload);
 
             if (finalPayloadString.length > 1000000) {
-                showMessage("Course is extremely large. Please remove some images or use Export.", "error");
+                showMessage("Course is still too large even after removing images. Please reduce text content or use Export.", "error");
                 setIsSharing(false);
                 return;
             }
@@ -627,11 +634,11 @@ export default function App() {
                     showMessage("Failed to retrieve share ID.", "error");
                 }
             } else {
-                showMessage("Failed to create share link. The server might be blocking large courses.", "error");
+                showMessage("Failed to create share link. Server rejected the request.", "error");
             }
         } catch (e) {
             console.error(e);
-            showMessage("Network error. Course may be too large or blocked by your browser.", "error");
+            showMessage("Network error during sharing.", "error");
         }
         setIsSharing(false);
     };
@@ -731,97 +738,98 @@ export default function App() {
     const activeChapter = project.chapters.find(c => c.id === activeView);
 
     return (
-        <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
+        <div className="flex h-screen bg-gradient-to-br from-slate-100 via-indigo-50/30 to-purple-50/20 text-slate-900 font-sans overflow-hidden">
             <style>{`
                 .rich-text-editor { color: #1e293b; font-size: 1.05rem; }
                 .rich-text-editor h1, .rich-text-editor h2, .rich-text-editor h3 { font-weight: 800; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.75em; }
                 .rich-text-editor h1 { font-size: 1.85rem; border-left: 4px solid #6366f1; padding-left: 10px; }
-                .rich-text-editor h2 { font-size: 1.45rem; }
-                .rich-text-editor h3 { font-size: 1.25rem; }
+                .rich-text-editor h2 { font-size: 1.45rem; color: #1e40af; }
+                .rich-text-editor h3 { font-size: 1.25rem; color: #374151; }
                 .rich-text-editor p { margin-bottom: 1.25em; line-height: 1.8; color: #334155; }
                 .rich-text-editor ul, .rich-text-editor ol { padding-inline-start: 2.2em; margin-bottom: 1.25em; }
                 .rich-text-editor ul { list-style-type: disc; } .rich-text-editor ol { list-style-type: decimal; }
                 .rich-text-editor li { margin-bottom: 0.5em; color: #334155; }
-                .rich-text-editor table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
-                .rich-text-editor th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #cbd5e1; padding: 0.75em; color: #1e293b; }
-                .rich-text-editor td { border: 1px solid #cbd5e1; padding: 0.75em; color: #334155; }
-                .rich-text-editor blockquote { border-left: 4px solid #6366f1; padding: 0.8rem 1.25rem; margin: 1.5em 0; background-color: #f8fafc; color: #475569; font-style: italic; border-radius: 4px; }
+                .rich-text-editor table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+                .rich-text-editor th { background: linear-gradient(135deg, #eef2ff, #e0e7ff); font-weight: bold; border: 1px solid #c7d2fe; padding: 0.75em; color: #312e81; }
+                .rich-text-editor td { border: 1px solid #e2e8f0; padding: 0.75em; color: #334155; }
+                .rich-text-editor blockquote { border-left: 4px solid #818cf8; padding: 0.8rem 1.25rem; margin: 1.5em 0; background: linear-gradient(135deg, #eef2ff, #f5f3ff); color: #475569; font-style: italic; border-radius: 4px; }
+                .rich-text-editor img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 1em 0; }
             `}</style>
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-300 z-50 w-72 bg-white flex flex-col h-full border-r border-slate-200 shadow-sm`}>
-                <div className="p-5 border-b border-slate-200 flex flex-col space-y-3">
+            <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-300 z-50 w-72 bg-white flex flex-col h-full border-r border-indigo-100 shadow-lg`}>
+                <div className="p-5 border-b border-indigo-100 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 flex flex-col space-y-3">
                     <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-3"><Book className="w-8 h-8 text-indigo-500" /><div><h1 className="text-lg font-black text-slate-900">Course LabX</h1><span className="text-[10px] text-slate-500 font-bold uppercase">{project.isStudentEdition ? 'Student Hub View' : 'Instructor Center'}</span></div></div>
-                        <button className="md:hidden text-slate-600 hover:text-slate-900" onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
+                        <div className="flex items-center space-x-3"><Book className="w-8 h-8 text-white/90" /><div><h1 className="text-lg font-black text-white">Course LabX</h1><span className="text-[10px] text-indigo-200 font-bold uppercase">{project.isStudentEdition ? 'Student Hub View' : 'Instructor Center'}</span></div></div>
+                        <button className="md:hidden text-white/80 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
                     </div>
-                    {project.isStudentEdition && <div className="text-xs font-bold text-slate-700 bg-slate-100 p-2 rounded border border-slate-200 truncate" title={project.title}>{project.title}</div>}
+                    {project.isStudentEdition && <div className="text-xs font-bold text-white/90 bg-white/15 backdrop-blur p-2 rounded-lg border border-white/20 truncate" title={project.title}>{project.title}</div>}
                 </div>
-                <div className="p-4 bg-white border-b border-slate-200 space-y-2">
-                    <div className="flex items-center justify-between"><span className="text-[10px] uppercase text-slate-500 font-bold">AI Engine</span><div className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" /></div></div>
-                    <button onClick={() => setIsApiKeyModalOpen(true)} className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100/80 text-xs text-slate-700"><div className="flex items-center space-x-2"><Settings className="w-4 h-4 text-indigo-400" /><span>{getActiveApiKey() ? 'API Key Active' : 'Configure API Key'}</span></div></button>
+                <div className="p-4 bg-gradient-to-b from-indigo-50/80 to-white border-b border-indigo-100 space-y-2">
+                    <div className="flex items-center justify-between"><span className="text-[10px] uppercase text-indigo-600 font-bold">AI Engine</span><div className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" /></div></div>
+                    <button onClick={() => setIsApiKeyModalOpen(true)} className="w-full flex items-center justify-between p-2.5 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-50 text-xs text-slate-700 shadow-sm"><div className="flex items-center space-x-2"><Settings className="w-4 h-4 text-indigo-500" /><span className="text-slate-700 font-medium">{getActiveApiKey() ? 'API Key Active' : 'Configure API Key'}</span></div></button>
                 </div>
-                <div className="p-4 bg-white/60 border-b border-slate-200 space-y-2">
-                    <label className="flex items-center space-x-3 text-xs text-slate-700 p-2 rounded bg-slate-100 hover:bg-slate-200 cursor-pointer border border-slate-300/50"><Upload className="w-4 h-4 text-emerald-400" /><span>Load Course (.json)</span><input type="file" accept=".json" className="hidden" onChange={importJSON} /></label>
+                <div className="p-4 bg-white border-b border-indigo-100 space-y-2">
+                    <label className="flex items-center space-x-3 text-xs text-slate-700 p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 cursor-pointer border border-slate-200 hover:border-indigo-200 transition-colors shadow-sm"><Upload className="w-4 h-4 text-indigo-500" /><span className="font-medium">Load Course (.json)</span><input type="file" accept=".json" className="hidden" onChange={importJSON} /></label>
                     {!project.isStudentEdition && (
                         <div className="grid grid-cols-1 gap-2 pt-1">
-                            <button onClick={exportInstructorJSON} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2 rounded bg-slate-100/40 hover:bg-slate-100 border border-slate-200"><Download className="w-3.5 h-3.5 text-blue-400" /><span>Save Backup (Teacher)</span></button>
-                            <button onClick={exportStudentJSON} className="flex items-center space-x-2 text-[11px] text-amber-700 p-2 rounded bg-amber-50 hover:bg-amber-100 border border-amber-200"><Download className="w-3.5 h-3.5 text-amber-500" /><span>Export for Students</span></button>
-                            <button onClick={handleCreateShareLink} disabled={isSharing} className="flex items-center space-x-2 text-[11px] text-emerald-700 p-2 rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"><ExternalLink className="w-3.5 h-3.5 text-emerald-500" /><span>{isSharing ? 'Generating...' : 'Create Share Link'}</span></button>
+                            <button onClick={exportInstructorJSON} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2.5 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 transition-colors shadow-sm"><Download className="w-3.5 h-3.5 text-blue-500" /><span className="font-medium">Save Backup (Teacher)</span></button>
+                            <button onClick={exportStudentJSON} className="flex items-center space-x-2 text-[11px] text-amber-800 p-2.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm"><Download className="w-3.5 h-3.5 text-amber-600" /><span className="font-medium">Export for Students</span></button>
+                            <button onClick={handleCreateShareLink} disabled={isSharing} className="flex items-center space-x-2 text-[11px] text-emerald-800 p-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-sm"><ExternalLink className="w-3.5 h-3.5 text-emerald-600" /><span className="font-medium">{isSharing ? 'Generating...' : 'Create Share Link'}</span></button>
                         </div>
                     )}
                 </div>
-                <div className="flex-1 overflow-y-auto py-4">
-                    {!project.isStudentEdition && <div className={`px-5 py-3 cursor-pointer flex items-center space-x-3 hover:bg-white ${activeView === 'book' ? 'bg-indigo-600/20 border-l-4 border-indigo-500 text-slate-900' : 'border-l-4 border-transparent'}`} onClick={() => setActiveView('book')}><Settings className="w-4 h-4 text-slate-600" /><span className="font-semibold text-sm">Course Config</span></div>}
-                    <div className="px-5 mt-6 mb-3 text-[11px] font-bold text-slate-500 uppercase flex justify-between items-center">Modules<span className="bg-slate-100 text-slate-600 py-0.5 px-2 rounded-full text-xs">{project.chapters.length}</span></div>
+                <div className="flex-1 overflow-y-auto py-4 bg-white">
+                    {!project.isStudentEdition && <div className={`px-5 py-3.5 cursor-pointer flex items-center space-x-3 transition-all ${activeView === 'book' ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:bg-slate-50'}`} onClick={() => setActiveView('book')}><Settings className={`w-4 h-4 ${activeView === 'book' ? 'text-indigo-600' : 'text-slate-500'}`} /><span className="font-semibold text-sm text-slate-800">Course Config</span></div>}
+                    <div className="px-5 mt-6 mb-3 text-[11px] font-bold text-indigo-600 uppercase flex justify-between items-center">Modules<span className="bg-indigo-100 text-indigo-700 py-0.5 px-2.5 rounded-full text-xs font-bold">{project.chapters.length}</span></div>
                     {project.chapters.map((chap, idx) => (
-                        <div key={chap.id} className={`group px-5 py-3 cursor-pointer flex items-center justify-between hover:bg-white/80 ${activeView === chap.id ? 'bg-indigo-50/60 border-l-4 border-indigo-500 text-slate-900' : 'border-l-4 border-transparent'}`} onClick={() => setActiveView(chap.id)}>
-                            <div className="flex items-center space-x-3 truncate"><FileText className={`w-4 h-4 ${activeView === chap.id ? 'text-indigo-400' : 'text-slate-500'}`} /><span className="truncate text-sm font-semibold">{chap.title || `Module ${idx + 1}`}</span></div>
-                            {!project.isStudentEdition && <button onClick={(e) => { e.stopPropagation(); deleteChapter(chap.id); }} className="text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 p-1"><Trash2 className="w-3.5 h-3.5" /></button>}
+                        <div key={chap.id} className={`group px-5 py-3.5 cursor-pointer flex items-center justify-between transition-all ${activeView === chap.id ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:bg-slate-50'}`} onClick={() => setActiveView(chap.id)}>
+                            <div className="flex items-center space-x-3 truncate"><FileText className={`w-4 h-4 ${activeView === chap.id ? 'text-indigo-600' : 'text-slate-400'}`} /><span className={`truncate text-sm font-semibold ${activeView === chap.id ? 'text-indigo-900' : 'text-slate-700'}`}>{chap.title || `Module ${idx + 1}`}</span></div>
+                            {!project.isStudentEdition && <button onClick={(e) => { e.stopPropagation(); deleteChapter(chap.id); }} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>}
                         </div>
                     ))}
-                    {!project.isStudentEdition && <button onClick={addChapter} className="mx-5 mt-4 flex items-center space-x-2 text-xs text-indigo-400 p-2.5 rounded border border-dashed border-indigo-900/50 hover:bg-white w-[calc(100%-40px)]"><Plus className="w-4 h-4" /><span>New Module</span></button>}
+                    {!project.isStudentEdition && <button onClick={addChapter} className="mx-5 mt-4 flex items-center space-x-2 text-xs text-indigo-600 font-medium p-2.5 rounded-lg border border-dashed border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 w-[calc(100%-40px)] transition-colors"><Plus className="w-4 h-4" /><span>New Module</span></button>}
                 </div>
                 {!project.isStudentEdition && (
-                    <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex items-center justify-between">
-                        <span className="text-xs text-slate-600 font-medium">Author Mode Switcher</span>
-                        <button onClick={() => { setIsStudentMode(!isStudentMode); showMessage(isStudentMode ? "Instructor Workspace" : "Student View"); }} className="text-[10px] bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-md font-bold transition-colors">{isStudentMode ? "Exit Mode" : "Test Mode"}</button>
+                    <div className="p-4 border-t border-indigo-100 bg-gradient-to-r from-slate-50 to-indigo-50/50 flex items-center justify-between">
+                        <span className="text-xs text-slate-600 font-medium">Preview Mode</span>
+                        <button onClick={() => { setIsStudentMode(!isStudentMode); showMessage(isStudentMode ? "Instructor Workspace" : "Student View"); }} className={`text-[10px] px-4 py-1.5 rounded-full font-bold transition-all shadow-md ${isStudentMode ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg'}`}>{isStudentMode ? "Exit Mode" : "Test Mode"}</button>
                     </div>
                 )}
             </div>
 
             {/* Main Center Area */}
-            <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden relative border-r border-slate-200">
+            <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 to-indigo-50/20 overflow-hidden relative border-r border-indigo-100">
                 {activeView === 'book' && !project.isStudentEdition ? (
-                    <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full"><h2 className="text-2xl font-bold mb-6 flex items-center"><Settings className="w-6 h-6 mr-3 text-indigo-500" />Course Configuration</h2><div className="space-y-6"><div><label className="block text-sm font-medium text-slate-600 mb-2">Course Title</label><input type="text" value={project.title} onChange={(e) => setProject({...project, title: e.target.value})} className="w-full bg-slate-100 border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 outline-none" /></div><div><label className="block text-sm font-medium text-slate-600 mb-2">Language</label><select value={project.language} onChange={(e) => setProject({...project, language: e.target.value})} className="w-full bg-slate-100 border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 outline-none"><option value="English">English</option><option value="Spanish">Spanish</option><option value="French">French</option><option value="German">German</option></select></div></div></div>
+                    <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full"><h2 className="text-2xl font-bold mb-6 flex items-center text-slate-900"><Settings className="w-6 h-6 mr-3 text-indigo-500" />Course Configuration</h2><div className="space-y-6"><div><label className="block text-sm font-medium text-slate-700 mb-2">Course Title</label><input type="text" value={project.title} onChange={(e) => setProject({...project, title: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none shadow-sm" /></div><div><label className="block text-sm font-medium text-slate-700 mb-2">Language</label><select value={project.language} onChange={(e) => setProject({...project, language: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 outline-none shadow-sm"><option value="English">English</option><option value="Spanish">Spanish</option><option value="French">French</option><option value="German">German</option></select></div></div></div>
                 ) : activeChapter ? (
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 shadow-sm">
+                        <header className="bg-white/90 backdrop-blur-sm border-b border-indigo-100 px-6 py-4 flex items-center justify-between z-10 shadow-sm">
                             <div className="flex items-center space-x-4"><button className="md:hidden text-slate-600" onClick={() => setIsMobileMenuOpen(true)}><Menu className="w-6 h-6" /></button>
                             {isStudentMode ? <h2 className="text-xl font-bold text-slate-900">{activeChapter.title}</h2> : (
                                 <div className="flex items-center space-x-2 group w-full max-w-md">
-                                    <input type="text" value={activeChapter.title} onChange={(e) => updateChapter(activeChapter.id, { title: e.target.value })} className="text-xl font-bold bg-white text-slate-900 border border-slate-300 hover:border-indigo-500 focus:border-indigo-500 rounded px-3 py-1 outline-none w-full transition-colors" />
-                                    <Edit3 className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 opacity-50" />
+                                    <input type="text" value={activeChapter.title} onChange={(e) => updateChapter(activeChapter.id, { title: e.target.value })} className="text-xl font-bold bg-white text-slate-900 border border-slate-300 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-lg px-3 py-1.5 outline-none w-full transition-all shadow-sm" />
+                                    <Edit3 className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 opacity-60" />
                                 </div>
                             )}</div>
-                            <div className="flex space-x-2"><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'content' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} onClick={() => setActiveTab('content')}>Read</button><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'quiz' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} onClick={() => setActiveTab('quiz')}>Quiz</button></div>
+                            <div className="flex space-x-2"><button className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === 'content' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-indigo-50 border border-slate-200'}`} onClick={() => setActiveTab('content')}>Read</button><button className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === 'quiz' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-indigo-50 border border-slate-200'}`} onClick={() => setActiveTab('quiz')}>Quiz</button></div>
                         </header>
-                        <div className="flex-1 overflow-y-auto relative bg-slate-50">
+                        <div className="flex-1 overflow-y-auto relative">
                             {activeTab === 'content' && (
                                 <div className="max-w-4xl mx-auto pb-16">
                                     <EditorToolbar isStudentMode={isStudentMode} />
                                     <div className="space-y-6 px-4 md:px-8">
                                     {activeChapter.blocks.map((block, idx) => (
-                                        <div key={block.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-indigo-500/30 hover:shadow-md transition-all">
+                                        <div key={block.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-indigo-300 hover:shadow-md transition-all">
                                             {!isStudentMode && (
-                                                <div className="bg-slate-50/80 px-3 py-2 border-b border-slate-200 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <div className="flex items-center space-x-2 text-slate-600"><GripVertical className="w-4 h-4 cursor-grab" /><span className="text-[10px] font-bold uppercase">TEXT BLOCK</span></div>
+                                                <div className="bg-gradient-to-r from-slate-50 to-indigo-50/50 px-3 py-2 border-b border-slate-200 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="flex items-center space-x-2 text-slate-500"><GripVertical className="w-4 h-4 cursor-grab" /><span className="text-[10px] font-bold uppercase text-indigo-500">TEXT BLOCK</span></div>
                                                     <div className="flex space-x-1">
-                                                        <button onClick={() => moveBlock(activeChapter.id, idx, -1)} className="p-1 hover:bg-slate-100 rounded"><ArrowUp className="w-3 h-3 text-slate-600" /></button>
-                                                        <button onClick={() => moveBlock(activeChapter.id, idx, 1)} className="p-1 hover:bg-slate-100 rounded"><ArrowDown className="w-3 h-3 text-slate-600" /></button>
-                                                        <div className="w-px h-4 bg-slate-100 mx-1" />
-                                                        <button onClick={() => insertBlock(activeChapter.id, idx)} className="p-1 hover:bg-slate-100 rounded" title="Insert Text Below"><Plus className="w-3 h-3 text-blue-400" /></button>
-                                                        <button onClick={() => deleteBlock(activeChapter.id, block.id)} className="p-1 hover:bg-slate-100 rounded ml-2"><Trash2 className="w-3 h-3 text-red-400" /></button>
+                                                        <button onClick={() => moveBlock(activeChapter.id, idx, -1)} className="p-1 hover:bg-white rounded text-slate-500 hover:text-indigo-600"><ArrowUp className="w-3 h-3" /></button>
+                                                        <button onClick={() => moveBlock(activeChapter.id, idx, 1)} className="p-1 hover:bg-white rounded text-slate-500 hover:text-indigo-600"><ArrowDown className="w-3 h-3" /></button>
+                                                        <div className="w-px h-4 bg-slate-200 mx-1" />
+                                                        <button onClick={() => insertBlock(activeChapter.id, idx)} className="p-1 hover:bg-white rounded text-blue-500 hover:text-blue-600" title="Insert Text Below"><Plus className="w-3 h-3" /></button>
+                                                        <button onClick={() => deleteBlock(activeChapter.id, block.id)} className="p-1 hover:bg-white rounded ml-2 text-slate-400 hover:text-red-500"><Trash2 className="w-3 h-3" /></button>
                                                     </div>
                                                 </div>
                                             )}
@@ -829,7 +837,7 @@ export default function App() {
                                         </div>
                                     ))}
                                     {!isStudentMode && activeChapter.blocks.length === 0 && (
-                                        <div className="text-center p-12 border border-dashed border-slate-300 rounded-xl mx-4 mt-4"><p className="text-slate-500 mb-4">No content blocks yet.</p><button onClick={() => insertBlock(activeChapter.id, -1)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">Add First Block</button></div>
+                                        <div className="text-center p-12 border-2 border-dashed border-indigo-200 rounded-2xl mx-4 mt-4 bg-white/50"><Sparkles className="w-10 h-10 text-indigo-300 mx-auto mb-3" /><p className="text-slate-500 mb-4 font-medium">No content blocks yet.</p><button onClick={() => insertBlock(activeChapter.id, -1)} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all font-semibold">Add First Block</button></div>
                                     )}
                                     </div>
                                 </div>
@@ -839,13 +847,13 @@ export default function App() {
                                 <div className="max-w-3xl mx-auto pb-20 mt-8">
                                     {(!isStudentMode) && (
                                         <div className="flex justify-end mb-4 mx-4">
-                                            <button onClick={addBlankMCQ} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center"><Plus className="w-4 h-4 mr-1"/> Add Question</button>
+                                            <button onClick={addBlankMCQ} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg text-white px-5 py-2.5 rounded-full text-sm font-bold flex items-center transition-all shadow-md"><Plus className="w-4 h-4 mr-1"/> Add Question</button>
                                         </div>
                                     )}
                                     {activeChapter.mcqs.length > 0 ? (
                                         <div className="space-y-8 px-4">
                                             {activeChapter.mcqs.map((mcq, idx) => (
-                                                <div key={mcq.id} className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 relative group">
+                                                <div key={mcq.id} className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 relative group hover:border-indigo-200 hover:shadow-md transition-all">
                                                     {!isStudentMode && (
                                                         <button onClick={() => deleteMCQ(mcq.id)} className="absolute top-4 right-4 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100"><Trash2 className="w-5 h-5"/></button>
                                                     )}
@@ -881,43 +889,43 @@ export default function App() {
                                                     )}
                                                 </div>
                                             ))}
-                                            {isStudentMode && !quizSubmitted && <button onClick={() => setQuizSubmitted(true)} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg">Submit Answers</button>}
+                                            {isStudentMode && !quizSubmitted && <button onClick={() => setQuizSubmitted(true)} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-xl text-white font-bold rounded-xl shadow-lg transition-all">Submit Answers</button>}
                                         </div>
                                     ) : (
-                                        <div className="text-center p-12 bg-slate-100/30 rounded-2xl border border-dashed border-slate-300 mx-4"><ListChecks className="w-12 h-12 text-slate-500 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-700">No Quiz Available</h3></div>
+                                        <div className="text-center p-12 bg-white/60 rounded-2xl border-2 border-dashed border-indigo-200 mx-4"><ListChecks className="w-12 h-12 text-indigo-300 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-600">No Quiz Available</h3><p className="text-sm text-slate-400 mt-2">Generate quiz questions from the right panel</p></div>
                                     )}
                                 </div>
                             )}
                         </div>
                     </div>
-                ) : <div className="flex-1 flex flex-col items-center justify-center"><BookOpen className="w-16 h-16 opacity-20" /></div>}
+                ) : <div className="flex-1 flex flex-col items-center justify-center"><BookOpen className="w-16 h-16 text-indigo-200" /><p className="text-slate-400 mt-4 text-sm">Select a module to begin</p></div>}
             </div>
 
             {/* Right Panel / Tool Panel */}
             {activeChapter && (
-                <div className="w-80 bg-white flex flex-col border-l border-slate-200 shadow-sm flex-shrink-0 z-20">
+                <div className="w-80 bg-white flex flex-col border-l border-indigo-100 shadow-lg flex-shrink-0 z-20">
                     {isStudentMode ? (
                         <div className="flex flex-col h-full">
-                            <div className="p-4 border-b border-slate-200 bg-indigo-50 flex items-center space-x-3"><Bot className="w-6 h-6 text-indigo-600" /><h3 className="font-bold text-indigo-900">AI Tutor Chat</h3></div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                                <div className="bg-slate-100 p-3 rounded-xl rounded-tl-sm text-sm text-slate-700"><p>Hello! I am your AI Tutor for <strong>{activeChapter.title}</strong>. Ask me any questions about the material!</p></div>
+                            <div className="p-4 border-b border-indigo-100 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center space-x-3"><Bot className="w-6 h-6 text-white/90" /><h3 className="font-bold text-white">AI Tutor Chat</h3></div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-indigo-50/30 to-white">
+                                <div className="bg-white p-3 rounded-xl rounded-tl-sm text-sm text-slate-700 shadow-sm border border-slate-100"><p>Hello! I am your AI Tutor for <strong className="text-indigo-700">{activeChapter.title}</strong>. Ask me any questions about the material!</p></div>
                                 {(tutorChats[activeChapter.id] || []).map((msg, idx) => (
                                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[85%] p-3 rounded-xl text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>{msg.text}</div>
+                                        <div className={`max-w-[85%] p-3 rounded-xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-tr-sm' : 'bg-white text-slate-800 rounded-tl-sm border border-slate-100'}`}>{msg.text}</div>
                                     </div>
                                 ))}
-                                {tutorLoading && <div className="flex justify-start"><div className="bg-slate-100 p-3 rounded-xl rounded-tl-sm text-sm text-slate-600 flex space-x-1"><span className="animate-bounce">.</span><span className="animate-bounce delay-100">.</span><span className="animate-bounce delay-200">.</span></div></div>}
+                                {tutorLoading && <div className="flex justify-start"><div className="bg-white p-3 rounded-xl rounded-tl-sm text-sm text-indigo-500 flex space-x-1 shadow-sm border border-slate-100"><span className="animate-bounce">.</span><span className="animate-bounce delay-100">.</span><span className="animate-bounce delay-200">.</span></div></div>}
                                 <div ref={tutorChatEndRef} />
                             </div>
-                            <form onSubmit={handleTutorSubmit} className="p-4 border-t border-slate-200 bg-white relative">
-                                <input type="text" value={tutorQuery} onChange={(e) => setTutorQuery(e.target.value)} placeholder="Ask a question..." className="w-full bg-slate-100 border border-slate-300 rounded-full py-2.5 pl-4 pr-12 text-sm text-slate-900 focus:border-indigo-500 outline-none" />
-                                <button type="submit" disabled={tutorLoading || !tutorQuery.trim()} className="absolute right-6 top-1/2 -translate-y-1/2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50"><Send className="w-4 h-4" /></button>
+                            <form onSubmit={handleTutorSubmit} className="p-4 border-t border-indigo-100 bg-white relative">
+                                <input type="text" value={tutorQuery} onChange={(e) => setTutorQuery(e.target.value)} placeholder="Ask a question..." className="w-full bg-slate-50 border border-indigo-200 rounded-full py-2.5 pl-4 pr-12 text-sm text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none" />
+                                <button type="submit" disabled={tutorLoading || !tutorQuery.trim()} className="absolute right-6 top-1/2 -translate-y-1/2 text-indigo-500 hover:text-indigo-700 disabled:opacity-50"><Send className="w-4 h-4" /></button>
                             </form>
                         </div>
                     ) : (
                         <div className="flex-1 overflow-y-auto p-5 space-y-8">
                             <div>
-                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center"><BrainCircuit className="w-4 h-4 mr-2 text-indigo-400" /> Knowledge Base</h3>
+                                <h3 className="text-sm font-bold text-indigo-700 uppercase tracking-wider mb-4 flex items-center"><BrainCircuit className="w-4 h-4 mr-2 text-indigo-500" /> Knowledge Base</h3>
                                 <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
                                     <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="w-full bg-slate-50 border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none">
                                         {SOURCE_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
@@ -936,7 +944,7 @@ export default function App() {
                                             {sourceType === 'link' ? <input type="url" value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="https://..." className="w-full bg-slate-50 border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none" /> : <textarea value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="Paste text here..." className="w-full bg-slate-50 border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none h-24" />}
                                         </div>
                                     )}
-                                    <button onClick={handleAddSource} disabled={(!sourceValue && !sourceFile)} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2 rounded text-xs transition-colors">Add to Context</button>
+                                    <button onClick={handleAddSource} disabled={(!sourceValue && !sourceFile)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-md disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-xs transition-all">Add to Context</button>
                                 </div>
 
                                 {activeChapter.sources?.length > 0 && (
@@ -952,31 +960,31 @@ export default function App() {
                                 )}
                             </div>
 
-                            <div className="pt-6 border-t border-slate-200">
-                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center"><Edit3 className="w-4 h-4 mr-2 text-emerald-400" /> Course Generation</h3>
+                            <div className="pt-6 border-t border-indigo-100">
+                                <h3 className="text-sm font-bold text-emerald-700 uppercase tracking-wider mb-4 flex items-center"><Edit3 className="w-4 h-4 mr-2 text-emerald-500" /> Course Generation</h3>
                                 <div className="space-y-4">
-                                    <textarea value={activeChapter.customPrompt || ''} onChange={(e) => updateChapter(activeChapter.id, { customPrompt: e.target.value })} placeholder="Add any optional instructions here..." className="w-full bg-white border border-slate-300 rounded-lg p-3 text-xs text-slate-800 outline-none h-24 focus:border-emerald-500" />
-                                    <button onClick={() => regenerateChapter(activeChapter.id, activeChapter.sources || [])} disabled={isGenerating} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center disabled:opacity-50 transition-colors">
+                                    <textarea value={activeChapter.customPrompt || ''} onChange={(e) => updateChapter(activeChapter.id, { customPrompt: e.target.value })} placeholder="Add any optional instructions here..." className="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-800 outline-none h-24 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 shadow-sm" />
+                                    <button onClick={() => regenerateChapter(activeChapter.id, activeChapter.sources || [])} disabled={isGenerating} className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-lg text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center disabled:opacity-50 transition-all shadow-md">
                                         {isGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Synthesizing...</> : <><Sparkles className="w-4 h-4 mr-2" /> Generate Chapter Content</>}
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-slate-200">
-                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center"><ListChecks className="w-4 h-4 mr-2 text-amber-400" /> Quiz Builder</h3>
+                            <div className="pt-6 border-t border-indigo-100">
+                                <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider mb-4 flex items-center"><ListChecks className="w-4 h-4 mr-2 text-amber-500" /> Quiz Builder</h3>
                                 <div className="space-y-3">
                                     <div className="flex space-x-2">
-                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1">Count</label><input type="number" min="1" max="20" value={mcqConfig.count} onChange={e => setMcqConfig({...mcqConfig, count: parseInt(e.target.value)})} className="w-full bg-white border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none" /></div>
-                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1">Level</label><select value={mcqConfig.difficulty} onChange={e => setMcqConfig({...mcqConfig, difficulty: e.target.value})} className="w-full bg-white border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none"><option>Easy</option><option>Medium</option><option>Hard</option></select></div>
+                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1 font-semibold">Count</label><input type="number" min="1" max="20" value={mcqConfig.count} onChange={e => setMcqConfig({...mcqConfig, count: parseInt(e.target.value)})} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-900 outline-none shadow-sm" /></div>
+                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1 font-semibold">Level</label><select value={mcqConfig.difficulty} onChange={e => setMcqConfig({...mcqConfig, difficulty: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-900 outline-none shadow-sm"><option>Easy</option><option>Medium</option><option>Hard</option></select></div>
                                     </div>
-                                    <button onClick={handleGenerateMCQs} disabled={isGeneratingMCQs || activeChapter.blocks.length === 0} className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-lg text-xs flex items-center justify-center disabled:opacity-50 transition-colors">
+                                    <button onClick={handleGenerateMCQs} disabled={isGeneratingMCQs || activeChapter.blocks.length === 0} className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg text-white font-bold py-2.5 rounded-lg text-xs flex items-center justify-center disabled:opacity-50 transition-all shadow-md">
                                         {isGeneratingMCQs ? <><RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" /> Generating Quiz...</> : <><Trophy className="w-3.5 h-3.5 mr-2" /> Build MCQs from Text</>}
                                     </button>
                                 </div>
                             </div>
                             
-                            <div className="pt-6 border-t border-slate-200">
-                                <button onClick={() => handleDownloadWord(activeChapter)} className="w-full flex items-center justify-center space-x-2 text-sm text-slate-700 bg-slate-100 hover:bg-slate-200 py-3 rounded-lg border border-slate-300 transition-colors"><FileDown className="w-4 h-4 text-blue-400" /><span>Export Module to Word</span></button>
+                            <div className="pt-6 border-t border-indigo-100">
+                                <button onClick={() => handleDownloadWord(activeChapter)} className="w-full flex items-center justify-center space-x-2 text-sm text-slate-700 font-medium bg-white hover:bg-blue-50 py-3 rounded-lg border border-slate-200 hover:border-blue-200 transition-all shadow-sm"><FileDown className="w-4 h-4 text-blue-500" /><span>Export Module to Word</span></button>
                             </div>
                         </div>
                     )}
