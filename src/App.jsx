@@ -71,23 +71,7 @@ async function callGeminiJSON(promptOrParts, schema) {
     return JSON.parse(text);
 }
 
-async function callGeminiImage(prompt) {
-    // Google AI Free Tier API keys do not currently support Imagen endpoints.
-    // To ensure the app remains 100% free for professors, we fallback to Pollinations AI, 
-    // a completely free, no-key-required AI image generation service.
-    const safePrompt = encodeURIComponent(prompt);
-    const seed = Math.floor(Math.random() * 1000000);
-    const url = `https://image.pollinations.ai/prompt/${safePrompt}?width=800&height=400&nologo=true&seed=${seed}`;
-    
-    // We can just return the URL directly for the <img> tag to load!
-    return url;
-}
 
-async function callGeminiImageToImage(prompt, referenceImage) {
-    // Similarly, we use the free Pollinations AI. 
-    // (Free tier doesn't easily support img2img, so we use the enhanced prompt).
-    return callGeminiImage(prompt + " (Ensure high relevance)");
-}
 
 const mcqResponseSchema = {
     type: "OBJECT",
@@ -128,6 +112,56 @@ const ContentEditableBlock = ({ html, onChange, readOnly }) => {
             onBlur={handleBlur}
             className={`rich-text-editor outline-none p-6 min-h-[60px] w-full ${readOnly ? 'prose max-w-none' : 'focus:bg-slate-800/50'}`}
         />
+    );
+};
+
+const EditorToolbar = ({ isStudentMode }) => {
+    if (isStudentMode) return null;
+
+    const execCmd = (cmd, value = null) => {
+        document.execCommand(cmd, false, value);
+    };
+
+    const insertTable = () => {
+        const tableHTML = `<table class="w-full border-collapse mb-4 bg-slate-800 rounded overflow-hidden">
+            <tr><th class="border border-slate-600 p-2 text-white font-bold bg-slate-700">Header 1</th><th class="border border-slate-600 p-2 text-white font-bold bg-slate-700">Header 2</th></tr>
+            <tr><td class="border border-slate-600 p-2">Cell 1</td><td class="border border-slate-600 p-2">Cell 2</td></tr>
+        </table>`;
+        document.execCommand('insertHTML', false, tableHTML);
+    };
+
+    const insertImageInline = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            document.execCommand('insertImage', false, event.target.result);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    const btnClass = "p-1.5 hover:bg-slate-700 rounded text-slate-300 transition-colors";
+
+    return (
+        <div className="sticky top-0 z-30 bg-slate-900 border-b border-slate-700 shadow-md p-2 flex items-center space-x-1 overflow-x-auto rounded-b-xl mb-4 mx-4">
+            <button onMouseDown={e => { e.preventDefault(); execCmd('bold'); }} className={btnClass} title="Bold"><Bold className="w-4 h-4" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('italic'); }} className={btnClass} title="Italic"><Italic className="w-4 h-4" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('underline'); }} className={btnClass} title="Underline"><Underline className="w-4 h-4" /></button>
+            <div className="w-px h-5 bg-slate-700 mx-2" />
+            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H1'); }} className={btnClass} title="Heading 1"><Heading1 className="w-4 h-4" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H2'); }} className={btnClass} title="Heading 2"><Heading2 className="w-4 h-4" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H3'); }} className={btnClass} title="Heading 3"><Heading3 className="w-4 h-4" /></button>
+            <div className="w-px h-5 bg-slate-700 mx-2" />
+            <button onMouseDown={e => { e.preventDefault(); execCmd('insertUnorderedList'); }} className={btnClass} title="Bullet List"><List className="w-4 h-4" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('insertOrderedList'); }} className={btnClass} title="Numbered List"><ListOrdered className="w-4 h-4" /></button>
+            <div className="w-px h-5 bg-slate-700 mx-2" />
+            <button onMouseDown={e => { e.preventDefault(); insertTable(); }} className={btnClass} title="Insert Table"><Type className="w-4 h-4 mr-1 inline" />Table</button>
+            <label className={`${btnClass} cursor-pointer flex items-center`} title="Insert Inline Image">
+                <ImagePlus className="w-4 h-4 mr-1" /> Image
+                <input type="file" accept="image/*" className="hidden" onChange={insertImageInline} />
+            </label>
+        </div>
     );
 };
 
@@ -185,6 +219,9 @@ export default function App() {
                     parsed.chapters = parsed.chapters.map(c => {
                         if (c.blocks && c.blocks.length === 1 && c.blocks[0].id === 'b_starter') {
                             c.blocks = [];
+                        }
+                        if (c.mcqs && c.mcqs.length === 1 && c.mcqs[0].id === 'mcq_starter') {
+                            c.mcqs = [];
                         }
                         if (c.content && (!c.blocks || c.blocks.length === 0)) c.blocks = [{ id: 'b_' + Date.now(), type: 'html', content: c.content }];
                         if (!c.blocks) c.blocks = [];
@@ -287,12 +324,10 @@ export default function App() {
         });
     };
 
-    const insertBlock = (chapterId, index, type) => {
+    const insertBlock = (chapterId, index) => {
         setProject(prev => {
             const chapter = prev.chapters.find(c => c.id === chapterId);
-            const newBlock = type === 'image' 
-                ? { id: 'b_' + Date.now(), type: 'image', prompt: 'A simple schematic diagram of...', url: '', isLoading: false }
-                : { id: 'b_' + Date.now(), type: 'html', content: '<p>New text section...</p>' };
+            const newBlock = { id: 'b_' + Date.now(), type: 'html', content: '<p>New text section...</p>' };
             const blocks = [...chapter.blocks];
             blocks.splice(index + 1, 0, newBlock);
             return { ...prev, chapters: prev.chapters.map(c => c.id === chapterId ? { ...c, blocks } : c) };
@@ -343,8 +378,8 @@ export default function App() {
         if (!activeChapter) return;
         setIsGenerating(true);
         try {
-            const currentContent = activeChapter.blocks?.map(b => b.type === 'html' ? b.content : `[IMAGE: ${b.prompt}]`).join('\n\n');
-            const textPrompt = `You are an elite course designer. CURRENT CONTENT:\n${currentContent || "Empty."}\nCUSTOM PROMPT:\n${activeChapter.customPrompt || "None."}\nLANGUAGE: ${project.language}\nINSTRUCTIONS:\n1. Generate an immersive educational chapter using HTML structures. Use tables, <h1>, <h2>, <h3>, <blockquote>.\n2. Output equations in HTML.\n3. Do not output markdown.\n4. Insert [IMAGE: <description>] on its own line for diagrams.\n5. Ensure thorough coverage.`;
+            const currentContent = activeChapter.blocks?.map(b => b.content).join('\n\n');
+            const textPrompt = `You are an elite course designer. CURRENT CONTENT:\n${currentContent || "Empty."}\nCUSTOM PROMPT:\n${activeChapter.customPrompt || "None."}\nLANGUAGE: ${project.language}\nINSTRUCTIONS:\n1. Generate an immersive educational chapter using HTML structures. Use tables, <h1>, <h2>, <h3>, <blockquote>.\n2. Output equations in HTML.\n3. Do not output markdown.\n4. Focus only on rich text.\n5. Ensure thorough coverage.`;
             const parts = [{ text: textPrompt }];
             if (sourcesToUse?.length > 0) {
                 parts.push({ text: "\n\n--- KNOWLEDGE SOURCES ---\n" });
@@ -357,18 +392,9 @@ export default function App() {
             }
             let rawOutput = await callGeminiText(parts);
             rawOutput = rawOutput.replace(/^```html/gm, '').replace(/^```/gm, '').trim();
-            const newBlocks = []; const regex = /\[IMAGE:\s*(.*?)\]/g; let lastIndex = 0; let match;
-            while ((match = regex.exec(rawOutput)) !== null) {
-                const textContent = rawOutput.substring(lastIndex, match.index).trim();
-                if (textContent) newBlocks.push({ id: `b_${Date.now()}_${Math.random()}`, type: 'html', content: textContent });
-                newBlocks.push({ id: `b_${Date.now()}_${Math.random()}`, type: 'image', prompt: match[1].trim(), url: '', isLoading: true });
-                lastIndex = regex.lastIndex;
-            }
-            const remainingText = rawOutput.substring(lastIndex).trim();
-            if (remainingText) newBlocks.push({ id: `b_${Date.now()}_${Math.random()}`, type: 'html', content: remainingText });
+            const newBlocks = [{ id: `b_${Date.now()}`, type: 'html', content: rawOutput }];
             updateChapter(activeChapter.id, { blocks: newBlocks, sources: sourcesToUse });
             showMessage("Chapter generated!", "success");
-            newBlocks.filter(b => b.type === 'image').forEach(imgBlock => handleRegenerateImage(activeChapter.id, imgBlock));
         } catch (err) { handleApiError(err); } finally { setIsGenerating(false); }
     };
 
@@ -389,13 +415,7 @@ export default function App() {
         } catch (e) { handleApiError(e); } finally { setIsGeneratingMCQs(false); }
     };
 
-    const handleRegenerateImage = async (chapterId, block) => {
-        updateBlock(chapterId, block.id, { isLoading: true });
-        try {
-            const url = block.referenceImage ? await callGeminiImageToImage(block.prompt, block.referenceImage) : await callGeminiImage(block.prompt);
-            updateBlock(chapterId, block.id, { url, isLoading: false });
-        } catch (e) { handleApiError(e); updateBlock(chapterId, block.id, { isLoading: false }); }
-    };
+
 
     const handleTutorSubmit = async (e) => {
         e.preventDefault();
@@ -426,24 +446,31 @@ export default function App() {
     };
 
     const handleDownloadWord = (activeChapter) => {
-        const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title></head><body><h1>${activeChapter.title}</h1>${activeChapter.blocks.filter(b => b.type === 'html').map(b => b.content).join('<br/>')}</body></html>`;
+        const customStyle = `<style>
+            body { font-family: "Segoe UI", Arial, sans-serif; line-height: 1.6; color: #333; margin: 40px; }
+            h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-bottom: 20px; font-size: 24pt; }
+            h2 { color: #34495e; margin-top: 24px; margin-bottom: 12px; font-size: 18pt; }
+            h3 { color: #7f8c8d; font-size: 14pt; }
+            p { margin-bottom: 12px; font-size: 11pt; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; border: 1px solid #ddd; }
+            th, td { border: 1px solid #000; padding: 10px; text-align: left; font-size: 11pt; }
+            th { background-color: #f4f4f4; font-weight: bold; }
+            img { max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 15px 0; }
+            blockquote { border-left: 4px solid #ccc; margin-left: 0; padding-left: 15px; font-style: italic; color: #555; background: #f9f9f9; padding: 10px 15px; }
+            .frac { display: inline-block; vertical-align: middle; text-align: center; font-size: 0.9em; margin: 0 4px; }
+            .frac .num { display: block; border-bottom: 1px solid #000; padding: 0 2px; }
+            .frac .den { display: block; padding: 0 2px; }
+            ul, ol { margin-bottom: 12px; padding-left: 24px; font-size: 11pt; }
+            li { margin-bottom: 4px; }
+        </style>`;
+        const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title>${customStyle}</head><body><h1>${activeChapter.title}</h1>${activeChapter.blocks.map(b => b.content).join('<br/><br/>')}</body></html>`;
         const link = document.createElement('a');
         link.href = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
         link.download = `${activeChapter.title.replace(/\s+/g, '_')}.doc`; link.click();
         showMessage("Exported to Word.", "success");
     };
 
-    const handleBlockImageUpload = (chapterId, blockId, e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const base64 = event.target.result.split(',')[1];
-            updateBlock(chapterId, blockId, { referenceImage: { mimeType: file.type, data: base64 } });
-            showMessage("Reference Image Uploaded!", "success");
-        };
-        reader.readAsDataURL(file);
-    };
+
 
     const handleDeleteSource = (sourceId) => {
         const activeChapter = project.chapters.find(c => c.id === activeView);
@@ -543,46 +570,32 @@ export default function App() {
                             )}</div>
                             <div className="flex space-x-2"><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'content' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`} onClick={() => setActiveTab('content')}>Read</button><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'quiz' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`} onClick={() => setActiveTab('quiz')}>Quiz</button></div>
                         </header>
-                        <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+                        <div className="flex-1 overflow-y-auto relative bg-slate-900">
                             {activeTab === 'content' && (
-                                <div className="max-w-4xl mx-auto space-y-6">
+                                <div className="max-w-4xl mx-auto pb-16">
+                                    <EditorToolbar isStudentMode={isStudentMode} />
+                                    <div className="space-y-6 px-4 md:px-8">
                                     {activeChapter.blocks.map((block, idx) => (
                                         <div key={block.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group hover:border-indigo-500/30 transition-colors">
                                             {!isStudentMode && (
                                                 <div className="bg-slate-950 px-3 py-2 border-b border-slate-800 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <div className="flex items-center space-x-2 text-slate-400"><GripVertical className="w-4 h-4 cursor-grab" /><span className="text-[10px] font-bold uppercase">{block.type} BLOCK</span></div>
+                                                    <div className="flex items-center space-x-2 text-slate-400"><GripVertical className="w-4 h-4 cursor-grab" /><span className="text-[10px] font-bold uppercase">TEXT BLOCK</span></div>
                                                     <div className="flex space-x-1">
                                                         <button onClick={() => moveBlock(activeChapter.id, idx, -1)} className="p-1 hover:bg-slate-800 rounded"><ArrowUp className="w-3 h-3 text-slate-400" /></button>
                                                         <button onClick={() => moveBlock(activeChapter.id, idx, 1)} className="p-1 hover:bg-slate-800 rounded"><ArrowDown className="w-3 h-3 text-slate-400" /></button>
                                                         <div className="w-px h-4 bg-slate-800 mx-1" />
-                                                        <button onClick={() => insertBlock(activeChapter.id, idx, 'html')} className="p-1 hover:bg-slate-800 rounded" title="Insert Text Below"><Type className="w-3 h-3 text-blue-400" /></button>
-                                                        <button onClick={() => insertBlock(activeChapter.id, idx, 'image')} className="p-1 hover:bg-slate-800 rounded" title="Insert Image Below"><ImagePlus className="w-3 h-3 text-emerald-400" /></button>
+                                                        <button onClick={() => insertBlock(activeChapter.id, idx)} className="p-1 hover:bg-slate-800 rounded" title="Insert Text Below"><Plus className="w-3 h-3 text-blue-400" /></button>
                                                         <button onClick={() => deleteBlock(activeChapter.id, block.id)} className="p-1 hover:bg-slate-800 rounded ml-2"><Trash2 className="w-3 h-3 text-red-400" /></button>
                                                     </div>
                                                 </div>
                                             )}
-                                            {block.type === 'html' ? (
-                                                <ContentEditableBlock html={block.content} readOnly={isStudentMode} onChange={(content) => updateBlock(activeChapter.id, block.id, { content })} />
-                                            ) : (
-                                                <div className="p-6 flex flex-col items-center justify-center min-h-[250px] bg-slate-950">
-                                                    {block.isLoading ? (
-                                                        <div className="flex flex-col items-center text-indigo-400"><RefreshCw className="w-8 h-8 animate-spin mb-4" /><p className="text-sm">Synthesizing Image...</p></div>
-                                                    ) : block.url ? (
-                                                        <div className="relative group/img"><img src={block.url} alt={block.prompt} className="max-w-full rounded-lg shadow-xl" />
-                                                            {!isStudentMode && <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover/img:opacity-100"><button onClick={() => handleRegenerateImage(activeChapter.id, block)} className="bg-slate-900/90 text-white p-2 rounded-lg hover:bg-indigo-600"><RefreshCw className="w-4 h-4" /></button></div>}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-slate-500 flex flex-col items-center max-w-md text-center"><ImageIcon className="w-12 h-12 mb-4 opacity-50" /><input type="text" value={block.prompt} onChange={(e) => updateBlock(activeChapter.id, block.id, { prompt: e.target.value })} disabled={isStudentMode} className="w-full bg-transparent border-b border-slate-700 text-center focus:border-indigo-500 outline-none mb-4 italic p-1" placeholder="Describe image here..." />
-                                                            {!isStudentMode && <div className="flex space-x-3"><button onClick={() => handleRegenerateImage(activeChapter.id, block)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm flex items-center"><Sparkles className="w-4 h-4 mr-2" /> Generate Image</button><label className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm cursor-pointer hover:bg-slate-700">Upload Base<input type="file" accept="image/*" className="hidden" onChange={(e) => handleBlockImageUpload(activeChapter.id, block.id, e)} /></label></div>}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                            <ContentEditableBlock html={block.content} readOnly={isStudentMode} onChange={(content) => updateBlock(activeChapter.id, block.id, { content })} />
                                         </div>
                                     ))}
                                     {!isStudentMode && activeChapter.blocks.length === 0 && (
-                                        <div className="text-center p-12 border border-dashed border-slate-700 rounded-xl"><p className="text-slate-500 mb-4">No content blocks yet.</p><button onClick={() => insertBlock(activeChapter.id, -1, 'html')} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">Add First Block</button></div>
+                                        <div className="text-center p-12 border border-dashed border-slate-700 rounded-xl mx-4 mt-4"><p className="text-slate-500 mb-4">No content blocks yet.</p><button onClick={() => insertBlock(activeChapter.id, -1)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">Add First Block</button></div>
                                     )}
+                                    </div>
                                 </div>
                             )}
 
