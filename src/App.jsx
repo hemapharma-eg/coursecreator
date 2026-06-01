@@ -444,6 +444,42 @@ export default function App() {
         showMessage("Exported to Word.", "success");
     };
 
+    const handleBlockImageUpload = (chapterId, blockId, e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const base64 = event.target.result.split(',')[1];
+            updateBlock(chapterId, blockId, { referenceImage: { mimeType: file.type, data: base64 } });
+            showMessage("Reference Image Uploaded!", "success");
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleDeleteSource = (sourceId) => {
+        const activeChapter = project.chapters.find(c => c.id === activeView);
+        if (!activeChapter) return;
+        updateChapter(activeChapter.id, { sources: (activeChapter.sources || []).filter(s => s.id !== sourceId) });
+        showMessage("Source removed.");
+    };
+
+    const importJSON = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const parsed = JSON.parse(event.target.result);
+                setProject(parsed);
+                if (parsed.chapters && parsed.chapters.length > 0) setActiveView(parsed.chapters[0].id);
+                if (parsed.isStudentEdition) setIsStudentMode(true);
+                showMessage("Course loaded!", "success");
+            } catch (err) { showMessage("Failed to parse JSON", "error"); }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+
     const activeChapter = project.chapters.find(c => c.id === activeView);
 
     return (
