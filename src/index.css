@@ -9,3 +9,99 @@
     @apply antialiased text-slate-100 bg-slate-900;
   }
 }
+
+.tiptap-editor .ProseMirror { 
+  color: #1e293b; 
+  font-size: 1.05rem; 
+  outline: none;
+}
+.tiptap-editor .ProseMirror h1, .tiptap-editor .ProseMirror h2, .tiptap-editor .ProseMirror h3 { 
+  font-weight: 800; 
+  color: #0f172a; 
+  margin-top: 1.5em; 
+  margin-bottom: 0.75em; 
+}
+.tiptap-editor .ProseMirror h1 { 
+  font-size: 1.85rem; 
+  border-left: 4px solid #6366f1; 
+  padding-left: 10px; 
+}
+.tiptap-editor .ProseMirror h2 { 
+  font-size: 1.45rem; 
+  color: #1e293b; 
+}
+.tiptap-editor .ProseMirror h3 { 
+  font-size: 1.25rem; 
+  color: #374151; 
+}
+.tiptap-editor .ProseMirror p { 
+  margin-bottom: 1.25em; 
+  line-height: 1.8; 
+  color: #334155; 
+}
+.tiptap-editor .ProseMirror ul, .tiptap-editor .ProseMirror ol { 
+  padding-inline-start: 2.2em; 
+  margin-bottom: 1.25em; 
+}
+.tiptap-editor .ProseMirror ul { 
+  list-style-type: disc; 
+} 
+.tiptap-editor .ProseMirror ol { 
+  list-style-type: decimal; 
+}
+.tiptap-editor .ProseMirror li { 
+  margin-bottom: 0.5em; 
+  color: #334155; 
+}
+.tiptap-editor .ProseMirror table { 
+  width: max-content; 
+  min-width: 100%; 
+  border-collapse: collapse; 
+  margin-bottom: 1.5em; 
+  background-color: #ffffff; 
+  border-radius: 8px; 
+  overflow: hidden; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06); 
+  display: table;
+}
+.tiptap-editor .ProseMirror th { 
+  background: #f8fafc; 
+  font-weight: 700; 
+  border: 1px solid #e2e8f0; 
+  padding: 0.75em 1em; 
+  color: #1e293b; 
+  white-space: nowrap; 
+}
+.tiptap-editor .ProseMirror td { 
+  border: 1px solid #e2e8f0; 
+  padding: 0.75em 1em; 
+  color: #334155; 
+}
+.tiptap-editor .ProseMirror blockquote { 
+  border-left: 4px solid #818cf8; 
+  padding: 0.8rem 1.25rem; 
+  margin: 1.5em 0; 
+  background: #f8fafc; 
+  color: #475569; 
+  font-style: italic; 
+  border-radius: 4px; 
+}
+.tiptap-editor .ProseMirror img { 
+  max-width: 100%; 
+  border-radius: 8px; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+  margin: 1em 0; 
+}
+
+/* TipTap-specific selected cell styles */
+.tiptap-editor .ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
+}
+.tiptap-editor .ProseMirror table p {
+  margin: 0;
+}
