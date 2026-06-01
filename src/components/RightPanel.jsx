@@ -8,6 +8,157 @@ const SOURCE_TYPES = [
     { id: 'text', label: 'Paste Text' },
     { id: 'code', label: 'App Code' }
 ];
+function convertFractionSlashes(html) {
+    if (!html) return html;
+    
+    let processedHtml = html;
+    let startIndex = 0;
+    while (true) {
+        let indexFrac = processedHtml.indexOf('\u2044', startIndex);
+        let indexSlash = processedHtml.indexOf('/', startIndex);
+        
+        let index = -1;
+        if (indexFrac !== -1 && indexSlash !== -1) index = Math.min(indexFrac, indexSlash);
+        else if (indexFrac !== -1) index = indexFrac;
+        else if (indexSlash !== -1) index = indexSlash;
+        else break; // No more slashes
+        
+        const isNormalSlash = (processedHtml[index] === '/');
+        
+        if (isNormalSlash) {
+            // Safety checks for normal slash
+            if (index > 0 && processedHtml[index - 1] === '<') {
+                startIndex = index + 1;
+                continue;
+            }
+            if (index < processedHtml.length - 1 && processedHtml[index + 1] === '>') {
+                startIndex = index + 1;
+                continue;
+            }
+            let insideTag = false;
+            for (let i = index - 1; i >= 0; i--) {
+                if (processedHtml[i] === '>') break;
+                if (processedHtml[i] === '<') { insideTag = true; break; }
+            }
+            if (insideTag) {
+                startIndex = index + 1;
+                continue;
+            }
+            const textBefore = processedHtml.slice(Math.max(0, index - 6), index).toLowerCase();
+            if (textBefore.includes('http:/') || textBefore.includes('https:')) {
+                startIndex = index + 1;
+                continue;
+            }
+        }
+        
+        // Scan backward for numerator
+        let start = index - 1;
+        let brackets = 0;
+        let parens = 0;
+        while (start >= 0) {
+            const char = processedHtml[start];
+            
+            if (char === '>') {
+                let tagStart = start - 1;
+                while (tagStart >= 0 && processedHtml[tagStart] !== '<') {
+                    tagStart--;
+                }
+                if (tagStart >= 0) {
+                    const tagContent = processedHtml.slice(tagStart + 1, start);
+                    const tagName = tagContent.trim().split(/\s+/)[0].toLowerCase();
+                    const allowedTags = ['sub', '/sub', 'sup', '/sup', 'span', '/span', 'strong', '/strong', 'em', '/em', 'i', '/i', 'b', '/b'];
+                    if (allowedTags.includes(tagName)) {
+                        start = tagStart;
+                        if (start > 0) {
+                            start--;
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+            
+            if (char === '<') break;
+            
+            if (char === ']') brackets++;
+            if (char === '[') brackets--;
+            if (char === ')') parens++;
+            if (char === '(') parens--;
+            
+            if (brackets === 0 && parens === 0) {
+                if (['=', ';', ',', '.', '\n', '+', '-', '×', '*', '•', ':'].includes(char)) {
+                    start++;
+                    break;
+                }
+            }
+            start--;
+        }
+        if (start < 0) start = 0;
+        
+        // Scan forward for denominator
+        let end = index + 1;
+        brackets = 0;
+        parens = 0;
+        while (end < processedHtml.length) {
+            const char = processedHtml[end];
+            
+            if (char === '<') {
+                let tagEnd = end + 1;
+                while (tagEnd < processedHtml.length && processedHtml[tagEnd] !== '>') {
+                    tagEnd++;
+                }
+                if (tagEnd < processedHtml.length) {
+                    const tagContent = processedHtml.slice(end + 1, tagEnd);
+                    const tagName = tagContent.trim().split(/\s+/)[0].toLowerCase();
+                    const allowedTags = ['sub', '/sub', 'sup', '/sup', 'span', '/span', 'strong', '/strong', 'em', '/em', 'i', '/i', 'b', '/b'];
+                    if (allowedTags.includes(tagName)) {
+                        end = tagEnd;
+                        end++;
+                        continue;
+                    }
+                }
+                break;
+            }
+            
+            if (char === '>') break;
+            
+            if (char === '[') brackets++;
+            if (char === ']') brackets--;
+            if (char === '(') parens++;
+            if (char === ')') parens--;
+            
+            if (brackets === 0 && parens === 0) {
+                if (['=', ';', ',', '.', '\n', '+', '-', '×', '*', '•', ':'].includes(char)) {
+                    break;
+                }
+            }
+            end++;
+        }
+        
+        const numerator = processedHtml.slice(start, index).trim();
+        const denominator = processedHtml.slice(index + 1, end).trim();
+        
+        const hasAlphaNum = (str) => /[a-zA-Z0-9]/.test(str);
+        
+        if (!numerator || !denominator || (isNormalSlash && (!hasAlphaNum(numerator) || !hasAlphaNum(denominator)))) {
+            startIndex = index + 1;
+            continue;
+        }
+        
+        if (isNormalSlash && numerator.toLowerCase().endsWith('and') && denominator.toLowerCase().startsWith('or')) {
+            startIndex = index + 1;
+            continue;
+        }
+        
+        const fractionHtml = `<span class="frac"><span class="num">${numerator}</span><span class="den">${denominator}</span></span>`;
+        processedHtml = processedHtml.slice(0, start) + fractionHtml + processedHtml.slice(end);
+        startIndex = start + fractionHtml.length;
+    }
+    
+    return processedHtml;
+}
 
 export default function RightPanel({ chapterId }) {
     const project = useCourseStore(state => state.project);
@@ -47,9 +198,20 @@ export default function RightPanel({ chapterId }) {
         
         if (sourceType === 'file' && sourceFile) {
             try {
-                const text = await sourceFile.text();
-                newSource.textData = text;
-                newSource.value = `File: ${sourceFile.name}`;
+                if (sourceFile.type === 'application/pdf') {
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = error => reject(error);
+                        reader.readAsDataURL(sourceFile);
+                    });
+                    newSource.inlineData = { mimeType: 'application/pdf', data: base64 };
+                    newSource.value = `File: ${sourceFile.name} (PDF Document)`;
+                } else {
+                    const text = await sourceFile.text();
+                    newSource.textData = text;
+                    newSource.value = `File: ${sourceFile.name}`;
+                }
             } catch (err) {
                 return showMessage("Error reading file.", "error");
             }
@@ -76,15 +238,35 @@ export default function RightPanel({ chapterId }) {
         const sourcesToUse = activeChapter.sources || [];
         try {
             const currentContent = activeChapter.blocks?.map(b => b.content).join('\n\n');
-            const textPrompt = `You are an elite course designer. CURRENT CONTENT:\n${currentContent || "Empty."}\nCUSTOM PROMPT:\n${activeChapter.customPrompt || "None."}\nLANGUAGE: ${project.language}\nINSTRUCTIONS:\n1. Generate an immersive educational chapter using HTML structures. Use tables, <h1>, <h2>, <h3>, <blockquote>.\n2. Output equations in HTML.\n3. Do not output markdown. Do not include <style>, <head>, or <html> tags. Only output the raw inner HTML content.\n4. Focus only on rich text.\n5. Ensure thorough coverage.`;
+            const textPrompt = `You are an elite course designer. CURRENT CONTENT:
+${currentContent || "Empty."}
+CUSTOM PROMPT:
+${activeChapter.customPrompt || "None."}
+LANGUAGE: ${project.language}
+INSTRUCTIONS:
+1. Generate an immersive educational chapter using HTML structures. Use tables, <h1>, <h2>, <h3>, <blockquote>.
+2. Output all equations, formulas, fractions, and mathematical ratios using the strict HTML fraction structure:
+   <span class="frac"><span class="num">Numerator Content</span><span class="den">Denominator Content</span></span>
+   DO NOT use normal slashes "/" or unicode slashes "⁄" for fractions or equations in the text. For example:
+   - "peak area of A⁄peak area of IS" must be formatted as: <span class="frac"><span class="num">peak area of A</span><span class="den">peak area of IS</span></span>
+   - "% Relative Bioavailability = [AUC]T⁄[AUC]R × 100" must be formatted as: % Relative Bioavailability = <span class="frac"><span class="num">[AUC]<sub>T</sub></span><span class="den">[AUC]<sub>R</sub></span></span> &times; 100
+   Make sure you use subscripts (<sub>) and superscripts (<sup>) inside the numerator/denominator where appropriate.
+3. Do not output markdown. Do not include <style>, <head>, or <html> tags. Only output the raw inner HTML content.
+4. Focus only on rich text.
+5. Ensure thorough coverage.`;
             const parts = [{ text: textPrompt }];
             
             if (sourcesToUse?.length > 0) {
                 parts.push({ text: "\n\n--- KNOWLEDGE SOURCES ---\n" });
                 sourcesToUse.forEach((s, i) => {
-                    parts.push({ text: `\n[Source ${i+1}: ${s.name}]` });
-                    if (s.textData) parts.push({ text: s.textData });
-                    else parts.push({ text: s.value });
+                    parts.push({ text: `\n[Source ${i+1}: ${s.name}]\n` });
+                    if (s.textData) {
+                        parts.push({ text: s.textData });
+                    } else if (s.inlineData) {
+                        parts.push({ inlineData: s.inlineData });
+                    } else {
+                        parts.push({ text: s.value });
+                    }
                 });
             }
             
@@ -96,7 +278,8 @@ export default function RightPanel({ chapterId }) {
                 .replace(/^```/gm, '')
                 .trim();
                 
-            const newBlocks = [{ id: `b_${Date.now()}`, type: 'html', content: rawOutput }];
+            let processedOutput = convertFractionSlashes(rawOutput);
+            const newBlocks = [{ id: `b_${Date.now()}`, type: 'html', content: processedOutput }];
             updateChapter(activeChapter.id, { blocks: newBlocks, sources: sourcesToUse });
             showMessage("Chapter generated!", "success");
         } catch (err) { 

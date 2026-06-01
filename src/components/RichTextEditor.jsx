@@ -79,16 +79,18 @@ const MenuBar = ({ editor, isStudentMode }) => {
             <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className={`${btnClass} text-[10px] font-semibold`} title="Insert Table"><Type className="w-3.5 h-3.5" /></button>
             <div className="relative group">
                 <button className={`${btnClass} flex items-center text-[10px] font-semibold`} title="Table Editor">TBL ▼</button>
-                <div className="absolute hidden group-hover:flex flex-col bg-white border border-slate-200 shadow-xl rounded-lg top-full mt-0 z-50 w-32 py-1 left-0">
-                    <button onClick={() => editor.chain().focus().addRowAfter().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Row Below</button>
-                    <button onClick={() => editor.chain().focus().deleteRow().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Row</button>
-                    <div className="border-t border-slate-100 my-1" />
-                    <button onClick={() => editor.chain().focus().addColumnAfter().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Col Right</button>
-                    <button onClick={() => editor.chain().focus().deleteColumn().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Col</button>
-                    <div className="border-t border-slate-100 my-1" />
-                    <button onClick={() => editor.chain().focus().mergeCells().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Merge Cells</button>
-                    <button onClick={() => editor.chain().focus().splitCell().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Split Cell</button>
-                    <button onClick={() => editor.chain().focus().deleteTable().run()} className="px-3 py-1.5 text-left hover:bg-red-50 text-xs text-red-600">Delete Table</button>
+                <div className="absolute hidden group-hover:flex flex-col top-full left-0 pt-1 z-50 w-32">
+                    <div className="flex flex-col bg-white border border-slate-200 shadow-xl rounded-lg py-1">
+                        <button onClick={() => editor.chain().focus().addRowAfter().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Row Below</button>
+                        <button onClick={() => editor.chain().focus().deleteRow().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Row</button>
+                        <div className="border-t border-slate-100 my-1" />
+                        <button onClick={() => editor.chain().focus().addColumnAfter().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Col Right</button>
+                        <button onClick={() => editor.chain().focus().deleteColumn().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Col</button>
+                        <div className="border-t border-slate-100 my-1" />
+                        <button onClick={() => editor.chain().focus().mergeCells().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Merge Cells</button>
+                        <button onClick={() => editor.chain().focus().splitCell().run()} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Split Cell</button>
+                        <button onClick={() => editor.chain().focus().deleteTable().run()} className="px-3 py-1.5 text-left hover:bg-red-50 text-xs text-red-600">Delete Table</button>
+                    </div>
                 </div>
             </div>
             
