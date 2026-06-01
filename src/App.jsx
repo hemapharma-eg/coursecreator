@@ -69,7 +69,7 @@ async function callGeminiText(promptOrParts) {
     const activeKey = getActiveApiKey();
     if (!activeKey) throw new Error("MISSING_API_KEY");
     const parts = Array.isArray(promptOrParts) ? promptOrParts : [{ text: promptOrParts }];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${activeKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
     const payload = { contents: [{ parts: parts }], tools: [{ google_search: {} }] };
     const options = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
     const result = await fetchWithRetry(url, options);
@@ -80,7 +80,7 @@ async function callGeminiJSON(promptOrParts, schema) {
     const activeKey = getActiveApiKey();
     if (!activeKey) throw new Error("MISSING_API_KEY");
     const parts = Array.isArray(promptOrParts) ? promptOrParts : [{ text: promptOrParts }];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${activeKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
     const payload = { contents: [{ parts: parts }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
     const options = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
     const result = await fetchWithRetry(url, options);
