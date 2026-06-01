@@ -88,9 +88,17 @@ function convertFractionSlashes(html) {
             if (char === '(') parens--;
             
             if (brackets === 0 && parens === 0) {
-                if (['=', ';', ',', '.', '\n', '+', '-', '×', '*', '•', ':'].includes(char)) {
+                if (['=', ';', '\n', '+', '-', '×', '*', '•', ':'].includes(char)) {
                     start++;
                     break;
+                }
+                if (char === '.' || char === ',') {
+                    if (start > 0 && /[0-9]/.test(processedHtml[start - 1])) {
+                        // Keep going, it's a decimal/thousands separator
+                    } else {
+                        start++;
+                        break;
+                    }
                 }
             }
             start--;
@@ -130,8 +138,15 @@ function convertFractionSlashes(html) {
             if (char === ')') parens--;
             
             if (brackets === 0 && parens === 0) {
-                if (['=', ';', ',', '.', '\n', '+', '-', '×', '*', '•', ':'].includes(char)) {
+                if (['=', ';', '\n', '+', '-', '×', '*', '•', ':'].includes(char)) {
                     break;
+                }
+                if (char === '.' || char === ',') {
+                    if (end < processedHtml.length - 1 && /[0-9]/.test(processedHtml[end + 1])) {
+                        // Keep going, it's a decimal/thousands separator
+                    } else {
+                        break;
+                    }
                 }
             }
             end++;
@@ -251,6 +266,7 @@ INSTRUCTIONS:
    - "peak area of A⁄peak area of IS" must be formatted as: <span class="frac"><span class="num">peak area of A</span><span class="den">peak area of IS</span></span>
    - "% Relative Bioavailability = [AUC]T⁄[AUC]R × 100" must be formatted as: % Relative Bioavailability = <span class="frac"><span class="num">[AUC]<sub>T</sub></span><span class="den">[AUC]<sub>R</sub></span></span> &times; 100
    Make sure you use subscripts (<sub>) and superscripts (<sup>) inside the numerator/denominator where appropriate.
+   CRITICAL: DO NOT convert percentage values (like "85%") into fractions. Keep them exactly as "85%". Only use the fraction structure for mathematical equations and ratios.
 3. Do not output markdown. Do not include <style>, <head>, or <html> tags. Only output the raw inner HTML content.
 4. Focus only on rich text.
 5. Ensure thorough coverage.`;
@@ -313,7 +329,21 @@ INSTRUCTIONS:
     const handleDownloadWord = () => {
         if (!activeChapter) return;
         const contentHtml = activeChapter.blocks.map(b => b.content).join('<br/>');
-        const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title></head><body>";
+        const inlineCss = `
+        <style>
+            table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; background-color: #ffffff; font-family: sans-serif; }
+            th { background: #f8fafc; font-weight: bold; border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+            td { border: 1px solid #e2e8f0; padding: 8px 12px; }
+            .frac { display: inline-block; vertical-align: middle; text-align: center; margin: 0 4px; }
+            .frac .num { display: block; border-bottom: 1px solid #000; padding: 0 2px; }
+            .frac .den { display: block; padding: 0 2px; }
+            h1 { font-size: 24pt; border-left: 4px solid #6366f1; padding-left: 10px; margin-top: 1.5em; margin-bottom: 0.75em; }
+            h2 { font-size: 18pt; margin-top: 1.5em; margin-bottom: 0.75em; }
+            h3 { font-size: 14pt; margin-top: 1.5em; margin-bottom: 0.75em; }
+            blockquote { border-left: 4px solid #818cf8; padding: 10px 15px; background: #f8fafc; font-style: italic; }
+            p { line-height: 1.6; margin-bottom: 1em; }
+        </style>`;
+        const preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title>" + inlineCss + "</head><body>";
         const postHtml = "</body></html>";
         const blob = new Blob(['\ufeff', preHtml + contentHtml + postHtml], { type: 'application/msword' });
         const link = document.createElement('a');
