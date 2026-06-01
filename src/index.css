@@ -105,3 +105,21 @@
 .tiptap-editor .ProseMirror table p {
   margin: 0;
 }
+
+/* Fraction Styling */
+.tiptap-editor .ProseMirror .frac { 
+  display: inline-block; 
+  vertical-align: middle; 
+  text-align: center; 
+  font-size: 0.9em; 
+  margin: 0 4px; 
+}
+.tiptap-editor .ProseMirror .frac .num { 
+  display: block; 
+  border-bottom: 1px solid #000; 
+  padding: 0 2px; 
+}
+.tiptap-editor .ProseMirror .frac .den { 
+  display: block; 
+  padding: 0 2px; 
+}

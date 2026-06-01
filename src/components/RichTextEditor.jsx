@@ -9,6 +9,14 @@ import { Image } from '@tiptap/extension-image';
 import { Underline } from '@tiptap/extension-underline';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, Heading3, List, ListOrdered, AlignLeft, AlignCenter, AlignRight, Type, ImagePlus } from 'lucide-react';
+import { Mark, mergeAttributes } from '@tiptap/core';
+
+const CustomSpan = Mark.create({
+    name: 'customSpan',
+    addAttributes() { return { class: { default: null } }; },
+    parseHTML() { return [{ tag: 'span[class]' }, { tag: 'div[class]' }]; },
+    renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes), 0]; },
+});
 
 const MenuBar = ({ editor, isStudentMode }) => {
     if (!editor || isStudentMode) return null;
@@ -74,6 +82,7 @@ export default function RichTextEditor({ content, onChange, readOnly }) {
         extensions: [
             StarterKit,
             Underline,
+            CustomSpan,
             Image.configure({ inline: true, allowBase64: true }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Table.configure({ resizable: true }),
