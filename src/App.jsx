@@ -132,7 +132,7 @@ const ContentEditableBlock = ({ html, onChange, readOnly }) => {
             contentEditable={!readOnly}
             onBlur={handleBlur}
             onFocus={handleFocus}
-            className={`rich-text-editor outline-none p-6 min-h-[60px] w-full ${readOnly ? 'prose max-w-none' : 'focus:bg-slate-100/50'}`}
+            className={`rich-text-editor outline-none p-6 min-h-[60px] w-full overflow-x-auto ${readOnly ? 'prose max-w-none' : 'focus:bg-slate-50/80'}`}
         />
     );
 };
@@ -226,42 +226,42 @@ const EditorToolbar = ({ isStudentMode }) => {
         }
     };
 
-    const btnClass = "p-1.5 hover:bg-slate-200 rounded text-slate-700 transition-colors";
+    const btnClass = "p-1 hover:bg-indigo-50 rounded text-slate-600 transition-colors";
 
     return (
-        <div className="sticky top-0 z-30 bg-white border-b border-slate-300 shadow-md p-2 flex flex-wrap items-center gap-1 rounded-b-xl mb-4 mx-4">
-            <button onMouseDown={e => { e.preventDefault(); execCmd('bold'); }} className={btnClass} title="Bold"><Bold className="w-4 h-4" /></button>
-            <button onMouseDown={e => { e.preventDefault(); execCmd('italic'); }} className={btnClass} title="Italic"><Italic className="w-4 h-4" /></button>
-            <button onMouseDown={e => { e.preventDefault(); execCmd('underline'); }} className={btnClass} title="Underline"><Underline className="w-4 h-4" /></button>
-            <div className="w-px h-5 bg-slate-200 mx-2" />
-            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H1'); }} className={btnClass} title="Heading 1"><Heading1 className="w-4 h-4" /></button>
-            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H2'); }} className={btnClass} title="Heading 2"><Heading2 className="w-4 h-4" /></button>
-            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H3'); }} className={btnClass} title="Heading 3"><Heading3 className="w-4 h-4" /></button>
-            <div className="w-px h-5 bg-slate-200 mx-2" />
-            <button onMouseDown={e => { e.preventDefault(); execCmd('insertUnorderedList'); }} className={btnClass} title="Bullet List"><List className="w-4 h-4" /></button>
-            <button onMouseDown={e => { e.preventDefault(); execCmd('insertOrderedList'); }} className={btnClass} title="Numbered List"><ListOrdered className="w-4 h-4" /></button>
-            <div className="w-px h-5 bg-slate-200 mx-2" />
-            <button onMouseDown={e => { e.preventDefault(); execCmd('justifyLeft'); }} className={btnClass} title="Align Left"><AlignLeft className="w-4 h-4" /></button>
-            <button onMouseDown={e => { e.preventDefault(); execCmd('justifyCenter'); }} className={btnClass} title="Align Center"><AlignCenter className="w-4 h-4" /></button>
-            <button onMouseDown={e => { e.preventDefault(); execCmd('justifyRight'); }} className={btnClass} title="Align Right"><AlignRight className="w-4 h-4" /></button>
-            <div className="w-px h-5 bg-slate-200 mx-2" />
-            <button onMouseDown={e => { e.preventDefault(); insertTable(); }} className={btnClass} title="Insert Table"><Type className="w-4 h-4 mr-1 inline" />Table</button>
+        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm p-1.5 flex items-center gap-0.5 rounded-b-lg mb-4 mx-4">
+            <button onMouseDown={e => { e.preventDefault(); execCmd('bold'); }} className={btnClass} title="Bold"><Bold className="w-3.5 h-3.5" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('italic'); }} className={btnClass} title="Italic"><Italic className="w-3.5 h-3.5" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('underline'); }} className={btnClass} title="Underline"><Underline className="w-3.5 h-3.5" /></button>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H1'); }} className={btnClass} title="Heading 1"><Heading1 className="w-3.5 h-3.5" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H2'); }} className={btnClass} title="Heading 2"><Heading2 className="w-3.5 h-3.5" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('formatBlock', 'H3'); }} className={btnClass} title="Heading 3"><Heading3 className="w-3.5 h-3.5" /></button>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <button onMouseDown={e => { e.preventDefault(); execCmd('insertUnorderedList'); }} className={btnClass} title="Bullet List"><List className="w-3.5 h-3.5" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('insertOrderedList'); }} className={btnClass} title="Numbered List"><ListOrdered className="w-3.5 h-3.5" /></button>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <button onMouseDown={e => { e.preventDefault(); execCmd('justifyLeft'); }} className={btnClass} title="Align Left"><AlignLeft className="w-3.5 h-3.5" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('justifyCenter'); }} className={btnClass} title="Align Center"><AlignCenter className="w-3.5 h-3.5" /></button>
+            <button onMouseDown={e => { e.preventDefault(); execCmd('justifyRight'); }} className={btnClass} title="Align Right"><AlignRight className="w-3.5 h-3.5" /></button>
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <button onMouseDown={e => { e.preventDefault(); insertTable(); }} className={`${btnClass} text-[10px] font-semibold`} title="Insert Table"><Type className="w-3.5 h-3.5" /></button>
             <div className="relative group">
-                <button className={`${btnClass} flex items-center text-[11px] font-bold`} title="Table Editor">TABLE TOOLS ▼</button>
-                <div className="absolute hidden group-hover:flex flex-col bg-white border border-slate-200 shadow-xl rounded mt-1 z-50 w-32 py-1 left-0">
-                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('addRow'); }} className="px-3 py-1.5 text-left hover:bg-slate-100 text-xs text-slate-700">Add Row Below</button>
-                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('delRow'); }} className="px-3 py-1.5 text-left hover:bg-slate-100 text-xs text-slate-700">Delete Row</button>
-                    <div className="border-t border-slate-200 my-1" />
-                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('addCol'); }} className="px-3 py-1.5 text-left hover:bg-slate-100 text-xs text-slate-700">Add Col Right</button>
-                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('delCol'); }} className="px-3 py-1.5 text-left hover:bg-slate-100 text-xs text-slate-700">Delete Col</button>
-                    <div className="border-t border-slate-200 my-1" />
-                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('mergeRight'); }} className="px-3 py-1.5 text-left hover:bg-slate-100 text-xs text-slate-700">Merge Right</button>
-                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('split'); }} className="px-3 py-1.5 text-left hover:bg-slate-100 text-xs text-slate-700">Split Cell</button>
+                <button className={`${btnClass} flex items-center text-[10px] font-semibold`} title="Table Editor">TBL ▼</button>
+                <div className="absolute hidden group-hover:flex flex-col bg-white border border-slate-200 shadow-xl rounded-lg mt-1 z-50 w-32 py-1 left-0">
+                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('addRow'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Row Below</button>
+                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('delRow'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Row</button>
+                    <div className="border-t border-slate-100 my-1" />
+                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('addCol'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Col Right</button>
+                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('delCol'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Col</button>
+                    <div className="border-t border-slate-100 my-1" />
+                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('mergeRight'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Merge Right</button>
+                    <button onMouseDown={e => { e.preventDefault(); handleTableCmd('split'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Split Cell</button>
                 </div>
             </div>
-            <div className="w-px h-5 bg-slate-200 mx-2" />
-            <label className={`${btnClass} cursor-pointer flex items-center`} title="Insert Inline Image" onMouseDown={e => { e.preventDefault(); }}>
-                <ImagePlus className="w-4 h-4 mr-1" /> Image
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <label className={`${btnClass} cursor-pointer flex items-center text-[10px] font-semibold`} title="Insert Inline Image" onMouseDown={e => { e.preventDefault(); }}>
+                <ImagePlus className="w-3.5 h-3.5" />
                 <input type="file" accept="image/*" className="hidden" onChange={insertImageInline} />
             </label>
         </div>
@@ -738,89 +738,91 @@ export default function App() {
     const activeChapter = project.chapters.find(c => c.id === activeView);
 
     return (
-        <div className="flex h-screen bg-gradient-to-br from-slate-100 via-indigo-50/30 to-purple-50/20 text-slate-900 font-sans overflow-hidden">
+        <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-indigo-50/30 text-slate-900 font-sans overflow-hidden">
             <style>{`
                 .rich-text-editor { color: #1e293b; font-size: 1.05rem; }
                 .rich-text-editor h1, .rich-text-editor h2, .rich-text-editor h3 { font-weight: 800; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.75em; }
                 .rich-text-editor h1 { font-size: 1.85rem; border-left: 4px solid #6366f1; padding-left: 10px; }
-                .rich-text-editor h2 { font-size: 1.45rem; color: #1e40af; }
+                .rich-text-editor h2 { font-size: 1.45rem; color: #1e293b; }
                 .rich-text-editor h3 { font-size: 1.25rem; color: #374151; }
                 .rich-text-editor p { margin-bottom: 1.25em; line-height: 1.8; color: #334155; }
                 .rich-text-editor ul, .rich-text-editor ol { padding-inline-start: 2.2em; margin-bottom: 1.25em; }
                 .rich-text-editor ul { list-style-type: disc; } .rich-text-editor ol { list-style-type: decimal; }
                 .rich-text-editor li { margin-bottom: 0.5em; color: #334155; }
-                .rich-text-editor table { width: 100%; border-collapse: collapse; margin-bottom: 1.5em; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-                .rich-text-editor th { background: linear-gradient(135deg, #eef2ff, #e0e7ff); font-weight: bold; border: 1px solid #c7d2fe; padding: 0.75em; color: #312e81; }
-                .rich-text-editor td { border: 1px solid #e2e8f0; padding: 0.75em; color: #334155; }
-                .rich-text-editor blockquote { border-left: 4px solid #818cf8; padding: 0.8rem 1.25rem; margin: 1.5em 0; background: linear-gradient(135deg, #eef2ff, #f5f3ff); color: #475569; font-style: italic; border-radius: 4px; }
+                .rich-text-editor table { width: max-content; min-width: 100%; border-collapse: collapse; margin-bottom: 1.5em; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+                .rich-text-editor th { background: #f8fafc; font-weight: 700; border: 1px solid #e2e8f0; padding: 0.75em 1em; color: #1e293b; white-space: nowrap; }
+                .rich-text-editor td { border: 1px solid #e2e8f0; padding: 0.75em 1em; color: #334155; }
+                .rich-text-editor blockquote { border-left: 4px solid #818cf8; padding: 0.8rem 1.25rem; margin: 1.5em 0; background: #f8fafc; color: #475569; font-style: italic; border-radius: 4px; }
                 .rich-text-editor img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin: 1em 0; }
+                .table-scroll-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1em; }
+                .rich-text-editor table { display: table; }
             `}</style>
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-300 z-50 w-72 bg-white flex flex-col h-full border-r border-indigo-100 shadow-lg`}>
-                <div className="p-5 border-b border-indigo-100 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 flex flex-col space-y-3">
+            <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-300 z-50 w-72 bg-white flex flex-col h-full border-r border-slate-200 shadow-lg`}>
+                <div className="p-5 border-b border-slate-200 bg-gradient-to-r from-indigo-600 to-indigo-700 flex flex-col space-y-3">
                     <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-3"><Book className="w-8 h-8 text-white/90" /><div><h1 className="text-lg font-black text-white">Course LabX</h1><span className="text-[10px] text-indigo-200 font-bold uppercase">{project.isStudentEdition ? 'Student Hub View' : 'Instructor Center'}</span></div></div>
-                        <button className="md:hidden text-white/80 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
+                        <div className="flex items-center space-x-3"><Book className="w-7 h-7 text-indigo-200" /><div><h1 className="text-lg font-black text-white tracking-tight">Course LabX</h1><span className="text-[10px] text-indigo-300 font-bold uppercase">{project.isStudentEdition ? 'Student Hub View' : 'Instructor Center'}</span></div></div>
+                        <button className="md:hidden text-indigo-200 hover:text-white" onClick={() => setIsMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
                     </div>
-                    {project.isStudentEdition && <div className="text-xs font-bold text-white/90 bg-white/15 backdrop-blur p-2 rounded-lg border border-white/20 truncate" title={project.title}>{project.title}</div>}
+                    {project.isStudentEdition && <div className="text-xs font-bold text-indigo-100 bg-white/15 backdrop-blur p-2 rounded-lg border border-white/20 truncate" title={project.title}>{project.title}</div>}
                 </div>
-                <div className="p-4 bg-gradient-to-b from-indigo-50/80 to-white border-b border-indigo-100 space-y-2">
-                    <div className="flex items-center justify-between"><span className="text-[10px] uppercase text-indigo-600 font-bold">AI Engine</span><div className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" /></div></div>
-                    <button onClick={() => setIsApiKeyModalOpen(true)} className="w-full flex items-center justify-between p-2.5 rounded-lg bg-white border border-indigo-200 hover:bg-indigo-50 text-xs text-slate-700 shadow-sm"><div className="flex items-center space-x-2"><Settings className="w-4 h-4 text-indigo-500" /><span className="text-slate-700 font-medium">{getActiveApiKey() ? 'API Key Active' : 'Configure API Key'}</span></div></button>
+                <div className="p-4 bg-slate-50 border-b border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between"><span className="text-[10px] uppercase text-slate-500 font-bold">AI Engine</span><div className="flex items-center space-x-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" /></div></div>
+                    <button onClick={() => setIsApiKeyModalOpen(true)} className="w-full flex items-center justify-between p-2.5 rounded-lg bg-white border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 text-xs text-slate-700 shadow-sm transition-colors"><div className="flex items-center space-x-2"><Settings className="w-4 h-4 text-indigo-500" /><span className="text-slate-700 font-medium">{getActiveApiKey() ? 'API Key Active' : 'Configure API Key'}</span></div></button>
                 </div>
-                <div className="p-4 bg-white border-b border-indigo-100 space-y-2">
-                    <label className="flex items-center space-x-3 text-xs text-slate-700 p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50 cursor-pointer border border-slate-200 hover:border-indigo-200 transition-colors shadow-sm"><Upload className="w-4 h-4 text-indigo-500" /><span className="font-medium">Load Course (.json)</span><input type="file" accept=".json" className="hidden" onChange={importJSON} /></label>
+                <div className="p-4 bg-white border-b border-slate-200 space-y-2">
+                    <label className="flex items-center space-x-3 text-xs text-slate-700 p-2.5 rounded-lg bg-slate-50 hover:bg-indigo-50/50 cursor-pointer border border-slate-200 hover:border-indigo-200 transition-colors"><Upload className="w-4 h-4 text-indigo-500" /><span className="font-medium">Load Course (.json)</span><input type="file" accept=".json" className="hidden" onChange={importJSON} /></label>
                     {!project.isStudentEdition && (
-                        <div className="grid grid-cols-1 gap-2 pt-1">
-                            <button onClick={exportInstructorJSON} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2.5 rounded-lg bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 transition-colors shadow-sm"><Download className="w-3.5 h-3.5 text-blue-500" /><span className="font-medium">Save Backup (Teacher)</span></button>
-                            <button onClick={exportStudentJSON} className="flex items-center space-x-2 text-[11px] text-amber-800 p-2.5 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm"><Download className="w-3.5 h-3.5 text-amber-600" /><span className="font-medium">Export for Students</span></button>
-                            <button onClick={handleCreateShareLink} disabled={isSharing} className="flex items-center space-x-2 text-[11px] text-emerald-800 p-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-sm"><ExternalLink className="w-3.5 h-3.5 text-emerald-600" /><span className="font-medium">{isSharing ? 'Generating...' : 'Create Share Link'}</span></button>
+                        <div className="grid grid-cols-1 gap-1.5 pt-1">
+                            <button onClick={exportInstructorJSON} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 transition-colors"><Download className="w-3.5 h-3.5 text-indigo-400" /><span className="font-medium">Save Backup (Teacher)</span></button>
+                            <button onClick={exportStudentJSON} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 transition-colors"><Download className="w-3.5 h-3.5 text-indigo-400" /><span className="font-medium">Export for Students</span></button>
+                            <button onClick={handleCreateShareLink} disabled={isSharing} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 transition-colors"><ExternalLink className="w-3.5 h-3.5 text-indigo-400" /><span className="font-medium">{isSharing ? 'Generating...' : 'Create Share Link'}</span></button>
                         </div>
                     )}
                 </div>
                 <div className="flex-1 overflow-y-auto py-4 bg-white">
-                    {!project.isStudentEdition && <div className={`px-5 py-3.5 cursor-pointer flex items-center space-x-3 transition-all ${activeView === 'book' ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:bg-slate-50'}`} onClick={() => setActiveView('book')}><Settings className={`w-4 h-4 ${activeView === 'book' ? 'text-indigo-600' : 'text-slate-500'}`} /><span className="font-semibold text-sm text-slate-800">Course Config</span></div>}
-                    <div className="px-5 mt-6 mb-3 text-[11px] font-bold text-indigo-600 uppercase flex justify-between items-center">Modules<span className="bg-indigo-100 text-indigo-700 py-0.5 px-2.5 rounded-full text-xs font-bold">{project.chapters.length}</span></div>
+                    {!project.isStudentEdition && <div className={`px-5 py-3 cursor-pointer flex items-center space-x-3 transition-all ${activeView === 'book' ? 'bg-indigo-50 border-l-3 border-indigo-500' : 'border-l-3 border-transparent hover:bg-slate-50'}`} onClick={() => setActiveView('book')}><Settings className={`w-4 h-4 ${activeView === 'book' ? 'text-indigo-600' : 'text-slate-400'}`} /><span className={`font-semibold text-sm ${activeView === 'book' ? 'text-indigo-700' : 'text-slate-700'}`}>Course Config</span></div>}
+                    <div className="px-5 mt-6 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between items-center">Modules<span className="bg-indigo-100 text-indigo-600 py-0.5 px-2 rounded-full text-[10px] font-bold">{project.chapters.length}</span></div>
                     {project.chapters.map((chap, idx) => (
-                        <div key={chap.id} className={`group px-5 py-3.5 cursor-pointer flex items-center justify-between transition-all ${activeView === chap.id ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500' : 'border-l-4 border-transparent hover:bg-slate-50'}`} onClick={() => setActiveView(chap.id)}>
-                            <div className="flex items-center space-x-3 truncate"><FileText className={`w-4 h-4 ${activeView === chap.id ? 'text-indigo-600' : 'text-slate-400'}`} /><span className={`truncate text-sm font-semibold ${activeView === chap.id ? 'text-indigo-900' : 'text-slate-700'}`}>{chap.title || `Module ${idx + 1}`}</span></div>
-                            {!project.isStudentEdition && <button onClick={(e) => { e.stopPropagation(); deleteChapter(chap.id); }} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>}
+                        <div key={chap.id} className={`group px-5 py-3 cursor-pointer flex items-center justify-between transition-all ${activeView === chap.id ? 'bg-indigo-50 border-l-3 border-indigo-500' : 'border-l-3 border-transparent hover:bg-slate-50'}`} onClick={() => setActiveView(chap.id)}>
+                            <div className="flex items-center space-x-3 truncate"><FileText className={`w-4 h-4 ${activeView === chap.id ? 'text-indigo-600' : 'text-slate-400'}`} /><span className={`truncate text-sm font-semibold ${activeView === chap.id ? 'text-indigo-700' : 'text-slate-700'}`}>{chap.title || `Module ${idx + 1}`}</span></div>
+                            {!project.isStudentEdition && <button onClick={(e) => { e.stopPropagation(); deleteChapter(chap.id); }} className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 p-1 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>}
                         </div>
                     ))}
-                    {!project.isStudentEdition && <button onClick={addChapter} className="mx-5 mt-4 flex items-center space-x-2 text-xs text-indigo-600 font-medium p-2.5 rounded-lg border border-dashed border-indigo-300 hover:bg-indigo-50 hover:border-indigo-400 w-[calc(100%-40px)] transition-colors"><Plus className="w-4 h-4" /><span>New Module</span></button>}
+                    {!project.isStudentEdition && <button onClick={addChapter} className="mx-5 mt-4 flex items-center space-x-2 text-xs text-indigo-500 font-medium p-2.5 rounded-lg border border-dashed border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 w-[calc(100%-40px)] transition-colors"><Plus className="w-4 h-4" /><span>New Module</span></button>}
                 </div>
                 {!project.isStudentEdition && (
-                    <div className="p-4 border-t border-indigo-100 bg-gradient-to-r from-slate-50 to-indigo-50/50 flex items-center justify-between">
-                        <span className="text-xs text-slate-600 font-medium">Preview Mode</span>
-                        <button onClick={() => { setIsStudentMode(!isStudentMode); showMessage(isStudentMode ? "Instructor Workspace" : "Student View"); }} className={`text-[10px] px-4 py-1.5 rounded-full font-bold transition-all shadow-md ${isStudentMode ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg'}`}>{isStudentMode ? "Exit Mode" : "Test Mode"}</button>
+                    <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <span className="text-xs text-slate-500 font-medium">Preview Mode</span>
+                        <button onClick={() => { setIsStudentMode(!isStudentMode); showMessage(isStudentMode ? "Instructor Workspace" : "Student View"); }} className={`text-[10px] px-4 py-1.5 rounded-full font-bold transition-all shadow-sm ${isStudentMode ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}>{isStudentMode ? "Exit Mode" : "Test Mode"}</button>
                     </div>
                 )}
             </div>
 
             {/* Main Center Area */}
-            <div className="flex-1 flex flex-col bg-gradient-to-br from-slate-50 to-indigo-50/20 overflow-hidden relative border-r border-indigo-100">
+            <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden relative border-r border-slate-200">
                 {activeView === 'book' && !project.isStudentEdition ? (
                     <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full"><h2 className="text-2xl font-bold mb-6 flex items-center text-slate-900"><Settings className="w-6 h-6 mr-3 text-indigo-500" />Course Configuration</h2><div className="space-y-6"><div><label className="block text-sm font-medium text-slate-700 mb-2">Course Title</label><input type="text" value={project.title} onChange={(e) => setProject({...project, title: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none shadow-sm" /></div><div><label className="block text-sm font-medium text-slate-700 mb-2">Language</label><select value={project.language} onChange={(e) => setProject({...project, language: e.target.value})} className="w-full bg-white border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 outline-none shadow-sm"><option value="English">English</option><option value="Spanish">Spanish</option><option value="French">French</option><option value="German">German</option></select></div></div></div>
                 ) : activeChapter ? (
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        <header className="bg-white/90 backdrop-blur-sm border-b border-indigo-100 px-6 py-4 flex items-center justify-between z-10 shadow-sm">
+                        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 shadow-sm">
                             <div className="flex items-center space-x-4"><button className="md:hidden text-slate-600" onClick={() => setIsMobileMenuOpen(true)}><Menu className="w-6 h-6" /></button>
                             {isStudentMode ? <h2 className="text-xl font-bold text-slate-900">{activeChapter.title}</h2> : (
                                 <div className="flex items-center space-x-2 group w-full max-w-md">
-                                    <input type="text" value={activeChapter.title} onChange={(e) => updateChapter(activeChapter.id, { title: e.target.value })} className="text-xl font-bold bg-white text-slate-900 border border-slate-300 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-lg px-3 py-1.5 outline-none w-full transition-all shadow-sm" />
-                                    <Edit3 className="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 opacity-60" />
+                                    <input type="text" value={activeChapter.title} onChange={(e) => updateChapter(activeChapter.id, { title: e.target.value })} className="text-xl font-bold bg-white text-slate-900 border border-slate-300 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 rounded-lg px-3 py-1.5 outline-none w-full transition-all" />
+                                    <Edit3 className="w-5 h-5 text-slate-400 group-hover:text-indigo-500 opacity-60" />
                                 </div>
                             )}</div>
-                            <div className="flex space-x-2"><button className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === 'content' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-indigo-50 border border-slate-200'}`} onClick={() => setActiveTab('content')}>Read</button><button className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === 'quiz' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-indigo-50 border border-slate-200'}`} onClick={() => setActiveTab('quiz')}>Quiz</button></div>
+                            <div className="flex space-x-2"><button className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === 'content' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 border border-slate-200'}`} onClick={() => setActiveTab('content')}>Read</button><button className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${activeTab === 'quiz' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 border border-slate-200'}`} onClick={() => setActiveTab('quiz')}>Quiz</button></div>
                         </header>
-                        <div className="flex-1 overflow-y-auto relative">
+                        <div className="flex-1 overflow-y-auto relative bg-slate-50">
                             {activeTab === 'content' && (
                                 <div className="max-w-4xl mx-auto pb-16">
                                     <EditorToolbar isStudentMode={isStudentMode} />
                                     <div className="space-y-6 px-4 md:px-8">
                                     {activeChapter.blocks.map((block, idx) => (
-                                        <div key={block.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-indigo-300 hover:shadow-md transition-all">
+                                        <div key={block.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-indigo-200 hover:shadow-md transition-all">
                                             {!isStudentMode && (
                                                 <div className="bg-gradient-to-r from-slate-50 to-indigo-50/50 px-3 py-2 border-b border-slate-200 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="flex items-center space-x-2 text-slate-500"><GripVertical className="w-4 h-4 cursor-grab" /><span className="text-[10px] font-bold uppercase text-indigo-500">TEXT BLOCK</span></div>
@@ -837,7 +839,7 @@ export default function App() {
                                         </div>
                                     ))}
                                     {!isStudentMode && activeChapter.blocks.length === 0 && (
-                                        <div className="text-center p-12 border-2 border-dashed border-indigo-200 rounded-2xl mx-4 mt-4 bg-white/50"><Sparkles className="w-10 h-10 text-indigo-300 mx-auto mb-3" /><p className="text-slate-500 mb-4 font-medium">No content blocks yet.</p><button onClick={() => insertBlock(activeChapter.id, -1)} className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-full shadow-md hover:shadow-lg transition-all font-semibold">Add First Block</button></div>
+                                        <div className="text-center p-12 border-2 border-dashed border-slate-200 rounded-2xl mx-4 mt-4 bg-white"><Sparkles className="w-10 h-10 text-indigo-300 mx-auto mb-3" /><p className="text-slate-500 mb-4 font-medium">No content blocks yet.</p><button onClick={() => insertBlock(activeChapter.id, -1)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-full shadow-sm hover:shadow-md transition-all font-semibold">Add First Block</button></div>
                                     )}
                                     </div>
                                 </div>
@@ -847,7 +849,7 @@ export default function App() {
                                 <div className="max-w-3xl mx-auto pb-20 mt-8">
                                     {(!isStudentMode) && (
                                         <div className="flex justify-end mb-4 mx-4">
-                                            <button onClick={addBlankMCQ} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-lg text-white px-5 py-2.5 rounded-full text-sm font-bold flex items-center transition-all shadow-md"><Plus className="w-4 h-4 mr-1"/> Add Question</button>
+                                            <button onClick={addBlankMCQ} className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-full text-sm font-bold flex items-center transition-all shadow-sm"><Plus className="w-4 h-4 mr-1"/> Add Question</button>
                                         </div>
                                     )}
                                     {activeChapter.mcqs.length > 0 ? (
@@ -889,29 +891,29 @@ export default function App() {
                                                     )}
                                                 </div>
                                             ))}
-                                            {isStudentMode && !quizSubmitted && <button onClick={() => setQuizSubmitted(true)} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-xl text-white font-bold rounded-xl shadow-lg transition-all">Submit Answers</button>}
+                                            {isStudentMode && !quizSubmitted && <button onClick={() => setQuizSubmitted(true)} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all">Submit Answers</button>}
                                         </div>
                                     ) : (
-                                        <div className="text-center p-12 bg-white/60 rounded-2xl border-2 border-dashed border-indigo-200 mx-4"><ListChecks className="w-12 h-12 text-indigo-300 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-600">No Quiz Available</h3><p className="text-sm text-slate-400 mt-2">Generate quiz questions from the right panel</p></div>
+                                        <div className="text-center p-12 bg-white rounded-2xl border-2 border-dashed border-slate-200 mx-4"><ListChecks className="w-12 h-12 text-slate-300 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-500">No Quiz Available</h3><p className="text-sm text-slate-400 mt-2">Generate quiz questions from the right panel</p></div>
                                     )}
                                 </div>
                             )}
                         </div>
                     </div>
-                ) : <div className="flex-1 flex flex-col items-center justify-center"><BookOpen className="w-16 h-16 text-indigo-200" /><p className="text-slate-400 mt-4 text-sm">Select a module to begin</p></div>}
+                ) : <div className="flex-1 flex flex-col items-center justify-center"><BookOpen className="w-16 h-16 text-slate-200" /><p className="text-slate-400 mt-4 text-sm">Select a module to begin</p></div>}
             </div>
 
             {/* Right Panel / Tool Panel */}
             {activeChapter && (
-                <div className="w-80 bg-white flex flex-col border-l border-indigo-100 shadow-lg flex-shrink-0 z-20">
+                <div className="w-80 bg-white flex flex-col border-l border-slate-200 shadow-md flex-shrink-0 z-20">
                     {isStudentMode ? (
                         <div className="flex flex-col h-full">
-                            <div className="p-4 border-b border-indigo-100 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center space-x-3"><Bot className="w-6 h-6 text-white/90" /><h3 className="font-bold text-white">AI Tutor Chat</h3></div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-indigo-50/30 to-white">
+                            <div className="p-4 border-b border-slate-200 bg-indigo-600 flex items-center space-x-3"><Bot className="w-6 h-6 text-indigo-200" /><h3 className="font-bold text-white">AI Tutor Chat</h3></div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                                 <div className="bg-white p-3 rounded-xl rounded-tl-sm text-sm text-slate-700 shadow-sm border border-slate-100"><p>Hello! I am your AI Tutor for <strong className="text-indigo-700">{activeChapter.title}</strong>. Ask me any questions about the material!</p></div>
                                 {(tutorChats[activeChapter.id] || []).map((msg, idx) => (
                                     <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[85%] p-3 rounded-xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-tr-sm' : 'bg-white text-slate-800 rounded-tl-sm border border-slate-100'}`}>{msg.text}</div>
+                                        <div className={`max-w-[85%] p-3 rounded-xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-sm' : 'bg-white text-slate-800 rounded-tl-sm border border-slate-100'}`}>{msg.text}</div>
                                     </div>
                                 ))}
                                 {tutorLoading && <div className="flex justify-start"><div className="bg-white p-3 rounded-xl rounded-tl-sm text-sm text-indigo-500 flex space-x-1 shadow-sm border border-slate-100"><span className="animate-bounce">.</span><span className="animate-bounce delay-100">.</span><span className="animate-bounce delay-200">.</span></div></div>}
@@ -925,7 +927,7 @@ export default function App() {
                     ) : (
                         <div className="flex-1 overflow-y-auto p-5 space-y-8">
                             <div>
-                                <h3 className="text-sm font-bold text-indigo-700 uppercase tracking-wider mb-4 flex items-center"><BrainCircuit className="w-4 h-4 mr-2 text-indigo-500" /> Knowledge Base</h3>
+                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center"><BrainCircuit className="w-4 h-4 mr-2 text-indigo-500" /> Knowledge Base</h3>
                                 <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
                                     <select value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="w-full bg-slate-50 border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none">
                                         {SOURCE_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
@@ -944,7 +946,7 @@ export default function App() {
                                             {sourceType === 'link' ? <input type="url" value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="https://..." className="w-full bg-slate-50 border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none" /> : <textarea value={sourceValue} onChange={(e) => setSourceValue(e.target.value)} placeholder="Paste text here..." className="w-full bg-slate-50 border border-slate-300 rounded p-2 text-xs text-slate-900 outline-none h-24" />}
                                         </div>
                                     )}
-                                    <button onClick={handleAddSource} disabled={(!sourceValue && !sourceFile)} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-md disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-xs transition-all">Add to Context</button>
+                                    <button onClick={handleAddSource} disabled={(!sourceValue && !sourceFile)} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-2.5 rounded-lg text-xs transition-all">Add to Context</button>
                                 </div>
 
                                 {activeChapter.sources?.length > 0 && (
@@ -960,31 +962,31 @@ export default function App() {
                                 )}
                             </div>
 
-                            <div className="pt-6 border-t border-indigo-100">
-                                <h3 className="text-sm font-bold text-emerald-700 uppercase tracking-wider mb-4 flex items-center"><Edit3 className="w-4 h-4 mr-2 text-emerald-500" /> Course Generation</h3>
+                            <div className="pt-6 border-t border-slate-200">
+                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center"><Edit3 className="w-4 h-4 mr-2 text-indigo-500" /> Course Generation</h3>
                                 <div className="space-y-4">
-                                    <textarea value={activeChapter.customPrompt || ''} onChange={(e) => updateChapter(activeChapter.id, { customPrompt: e.target.value })} placeholder="Add any optional instructions here..." className="w-full bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-800 outline-none h-24 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 shadow-sm" />
-                                    <button onClick={() => regenerateChapter(activeChapter.id, activeChapter.sources || [])} disabled={isGenerating} className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-lg text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center disabled:opacity-50 transition-all shadow-md">
+                                    <textarea value={activeChapter.customPrompt || ''} onChange={(e) => updateChapter(activeChapter.id, { customPrompt: e.target.value })} placeholder="Add any optional instructions here..." className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-800 outline-none h-24 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50" />
+                                    <button onClick={() => regenerateChapter(activeChapter.id, activeChapter.sources || [])} disabled={isGenerating} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center disabled:opacity-50 transition-all shadow-sm hover:shadow-md">
                                         {isGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Synthesizing...</> : <><Sparkles className="w-4 h-4 mr-2" /> Generate Chapter Content</>}
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="pt-6 border-t border-indigo-100">
-                                <h3 className="text-sm font-bold text-amber-700 uppercase tracking-wider mb-4 flex items-center"><ListChecks className="w-4 h-4 mr-2 text-amber-500" /> Quiz Builder</h3>
+                            <div className="pt-6 border-t border-slate-200">
+                                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center"><ListChecks className="w-4 h-4 mr-2 text-indigo-500" /> Quiz Builder</h3>
                                 <div className="space-y-3">
                                     <div className="flex space-x-2">
-                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1 font-semibold">Count</label><input type="number" min="1" max="20" value={mcqConfig.count} onChange={e => setMcqConfig({...mcqConfig, count: parseInt(e.target.value)})} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-900 outline-none shadow-sm" /></div>
-                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1 font-semibold">Level</label><select value={mcqConfig.difficulty} onChange={e => setMcqConfig({...mcqConfig, difficulty: e.target.value})} className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs text-slate-900 outline-none shadow-sm"><option>Easy</option><option>Medium</option><option>Hard</option></select></div>
+                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1 font-semibold">Count</label><input type="number" min="1" max="20" value={mcqConfig.count} onChange={e => setMcqConfig({...mcqConfig, count: parseInt(e.target.value)})} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 outline-none" /></div>
+                                        <div className="flex-1"><label className="text-[10px] text-slate-500 uppercase block mb-1 font-semibold">Level</label><select value={mcqConfig.difficulty} onChange={e => setMcqConfig({...mcqConfig, difficulty: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs text-slate-900 outline-none"><option>Easy</option><option>Medium</option><option>Hard</option></select></div>
                                     </div>
-                                    <button onClick={handleGenerateMCQs} disabled={isGeneratingMCQs || activeChapter.blocks.length === 0} className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-lg text-white font-bold py-2.5 rounded-lg text-xs flex items-center justify-center disabled:opacity-50 transition-all shadow-md">
+                                    <button onClick={handleGenerateMCQs} disabled={isGeneratingMCQs || activeChapter.blocks.length === 0} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-xs flex items-center justify-center disabled:opacity-50 transition-all shadow-sm hover:shadow-md">
                                         {isGeneratingMCQs ? <><RefreshCw className="w-3.5 h-3.5 mr-2 animate-spin" /> Generating Quiz...</> : <><Trophy className="w-3.5 h-3.5 mr-2" /> Build MCQs from Text</>}
                                     </button>
                                 </div>
                             </div>
                             
-                            <div className="pt-6 border-t border-indigo-100">
-                                <button onClick={() => handleDownloadWord(activeChapter)} className="w-full flex items-center justify-center space-x-2 text-sm text-slate-700 font-medium bg-white hover:bg-blue-50 py-3 rounded-lg border border-slate-200 hover:border-blue-200 transition-all shadow-sm"><FileDown className="w-4 h-4 text-blue-500" /><span>Export Module to Word</span></button>
+                            <div className="pt-6 border-t border-slate-200">
+                                <button onClick={() => handleDownloadWord(activeChapter)} className="w-full flex items-center justify-center space-x-2 text-sm text-slate-600 font-medium bg-slate-50 hover:bg-indigo-50/50 py-3 rounded-lg border border-slate-200 hover:border-indigo-200 transition-all"><FileDown className="w-4 h-4 text-indigo-400" /><span>Export Module to Word</span></button>
                             </div>
                         </div>
                     )}
