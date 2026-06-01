@@ -72,33 +72,21 @@ async function callGeminiJSON(promptOrParts, schema) {
 }
 
 async function callGeminiImage(prompt) {
-    const activeKey = getActiveApiKey();
-    if (!activeKey) throw new Error("MISSING_API_KEY");
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${activeKey}`;
-    const payload = { instances: { prompt: prompt }, parameters: { sampleCount: 1 } };
-    const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
-    const result = await fetchWithRetry(url, options);
-    if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
-        return `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
-    }
-    throw new Error("Failed to generate image.");
+    // Google AI Free Tier API keys do not currently support Imagen endpoints.
+    // To ensure the app remains 100% free for professors, we fallback to Pollinations AI, 
+    // a completely free, no-key-required AI image generation service.
+    const safePrompt = encodeURIComponent(prompt);
+    const seed = Math.floor(Math.random() * 1000000);
+    const url = `https://image.pollinations.ai/prompt/${safePrompt}?width=800&height=400&nologo=true&seed=${seed}`;
+    
+    // We can just return the URL directly for the <img> tag to load!
+    return url;
 }
 
 async function callGeminiImageToImage(prompt, referenceImage) {
-    const activeKey = getActiveApiKey();
-    if (!activeKey) throw new Error("MISSING_API_KEY");
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${activeKey}`;
-    const payload = {
-        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: referenceImage.mimeType, data: referenceImage.data } }] }],
-        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
-    };
-    const options = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) };
-    const result = await fetchWithRetry(url, options);
-    const inlineData = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData;
-    if (inlineData && inlineData.data) {
-        return `data:${inlineData.mimeType};base64,${inlineData.data}`;
-    }
-    throw new Error("Failed to generate image from reference.");
+    // Similarly, we use the free Pollinations AI. 
+    // (Free tier doesn't easily support img2img, so we use the enhanced prompt).
+    return callGeminiImage(prompt + " (Ensure high relevance)");
 }
 
 const mcqResponseSchema = {
@@ -151,9 +139,7 @@ export default function App() {
             {
                 id: 'chap_starter',
                 title: 'Introduction to AI Systems',
-                blocks: [
-                    { id: 'b_starter', type: 'html', content: '<h2>Welcome to Chapter 1</h2><p>This is where your AI-generated course content will live. Instructors can feed raw sources, links, documents, and code blocks into the system and get a beautifully formatted academic chapter containing figures, equations, vertical fractions, tables, and rich citations.</p>' }
-                ],
+                blocks: [],
                 mcqs: [],
                 customPrompt: '',
                 sources: []
@@ -197,6 +183,9 @@ export default function App() {
                 const parsed = JSON.parse(saved);
                 if (parsed.chapters) {
                     parsed.chapters = parsed.chapters.map(c => {
+                        if (c.blocks && c.blocks.length === 1 && c.blocks[0].id === 'b_starter') {
+                            c.blocks = [];
+                        }
                         if (c.content && (!c.blocks || c.blocks.length === 0)) c.blocks = [{ id: 'b_' + Date.now(), type: 'html', content: c.content }];
                         if (!c.blocks) c.blocks = [];
                         if (!c.mcqs) c.mcqs = []; 
@@ -546,7 +535,12 @@ export default function App() {
                     <div className="flex-1 flex flex-col overflow-hidden">
                         <header className="bg-slate-950 border-b border-slate-800 px-6 py-4 flex items-center justify-between z-10">
                             <div className="flex items-center space-x-4"><button className="md:hidden text-slate-400" onClick={() => setIsMobileMenuOpen(true)}><Menu className="w-6 h-6" /></button>
-                            {isStudentMode ? <h2 className="text-xl font-bold text-white">{activeChapter.title}</h2> : <input type="text" value={activeChapter.title} onChange={(e) => updateChapter(activeChapter.id, { title: e.target.value })} className="text-xl font-bold bg-transparent text-white border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none pb-1 w-full max-w-md" />}</div>
+                            {isStudentMode ? <h2 className="text-xl font-bold text-white">{activeChapter.title}</h2> : (
+                                <div className="flex items-center space-x-2 group w-full max-w-md">
+                                    <input type="text" value={activeChapter.title} onChange={(e) => updateChapter(activeChapter.id, { title: e.target.value })} className="text-xl font-bold bg-slate-900 text-white border border-slate-700 hover:border-indigo-500 focus:border-indigo-500 rounded px-3 py-1 outline-none w-full transition-colors" />
+                                    <Edit3 className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 opacity-50" />
+                                </div>
+                            )}</div>
                             <div className="flex space-x-2"><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'content' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`} onClick={() => setActiveTab('content')}>Read</button><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'quiz' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`} onClick={() => setActiveTab('quiz')}>Quiz</button></div>
                         </header>
                         <div className="flex-1 overflow-y-auto p-4 md:p-8 relative">
@@ -686,7 +680,7 @@ export default function App() {
                             <div className="pt-6 border-t border-slate-800">
                                 <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center"><Edit3 className="w-4 h-4 mr-2 text-emerald-400" /> Course Generation</h3>
                                 <div className="space-y-4">
-                                    <textarea value={activeChapter.customPrompt || ''} onChange={(e) => updateChapter(activeChapter.id, { customPrompt: e.target.value })} placeholder="Custom Instructor Guidelines (e.g., 'Focus on X, explain Y simply...')" className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 outline-none h-24 focus:border-emerald-500" />
+                                    <textarea value={activeChapter.customPrompt || ''} onChange={(e) => updateChapter(activeChapter.id, { customPrompt: e.target.value })} placeholder="Add any optional instructions here..." className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs text-slate-200 outline-none h-24 focus:border-emerald-500" />
                                     <button onClick={() => regenerateChapter(activeChapter.id, activeChapter.sources || [])} disabled={isGenerating} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center disabled:opacity-50 transition-colors">
                                         {isGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Synthesizing...</> : <><Sparkles className="w-4 h-4 mr-2" /> Generate Chapter Content</>}
                                     </button>
