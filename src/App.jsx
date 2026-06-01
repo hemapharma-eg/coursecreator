@@ -7,6 +7,7 @@ import {
     Strikethrough, Heading1, Heading2, Heading3, Type, Quote, Undo, Redo, AlignJustify, Menu, X,
     BrainCircuit, ListChecks, Trophy, Eye, Edit3, MessageSquare, Send, Bot, Sparkles, User, Lock, Unlock, FileImage, ImagePlus, GripVertical
 } from 'lucide-react';
+import LZString from 'lz-string';
 
 const SOURCE_TYPES = [
     { id: 'link', label: 'Website Link', icon: ExternalLink },
@@ -228,7 +229,7 @@ const EditorToolbar = ({ isStudentMode }) => {
     const btnClass = "p-1.5 hover:bg-slate-200 rounded text-slate-700 transition-colors";
 
     return (
-        <div className="sticky top-0 z-30 bg-white border-b border-slate-300 shadow-md p-2 flex items-center space-x-1 overflow-x-auto rounded-b-xl mb-4 mx-4">
+        <div className="sticky top-0 z-30 bg-white border-b border-slate-300 shadow-md p-2 flex flex-wrap items-center gap-1 rounded-b-xl mb-4 mx-4">
             <button onMouseDown={e => { e.preventDefault(); execCmd('bold'); }} className={btnClass} title="Bold"><Bold className="w-4 h-4" /></button>
             <button onMouseDown={e => { e.preventDefault(); execCmd('italic'); }} className={btnClass} title="Italic"><Italic className="w-4 h-4" /></button>
             <button onMouseDown={e => { e.preventDefault(); execCmd('underline'); }} className={btnClass} title="Underline"><Underline className="w-4 h-4" /></button>
@@ -344,16 +345,35 @@ export default function App() {
         const urlParams = new URLSearchParams(window.location.search);
         const courseId = urlParams.get('course');
         if (courseId) {
+            setIsStudentMode(true);
             fetch(`https://jsonblob.com/api/jsonBlob/${courseId}`)
-                .then(r => r.json())
-                .then(parsed => {
-                    setProject(parsed);
-                    if (parsed.chapters && parsed.chapters.length > 0) setActiveView(parsed.chapters[0].id);
-                    if (parsed.isStudentEdition) setIsStudentMode(true);
+                .then(res => res.json())
+                .then(data => {
+                    if (data.c) {
+                        try {
+                            const decompressed = LZString.decompressFromBase64(data.c);
+                            const parsed = JSON.parse(decompressed);
+                            setProject(parsed);
+                            if (parsed.chapters && parsed.chapters.length > 0) {
+                                setActiveView(parsed.chapters[0].id);
+                            }
+                        } catch(e) {
+                            console.error("Failed to decompress", e);
+                            alert("Corrupted course data.");
+                        }
+                    } else {
+                        setProject(data);
+                        if (data.chapters && data.chapters.length > 0) {
+                            setActiveView(data.chapters[0].id);
+                        }
+                    }
                     showMessage("Course loaded from link!", "success");
                     window.history.replaceState({}, document.title, window.location.pathname);
                 })
-                .catch(e => showMessage("Failed to load course from link.", "error"));
+                .catch(err => {
+                    console.error("Failed to load shared course", err);
+                    alert("Failed to load shared course. The link might be expired or invalid.");
+                });
         }
     }, []);
 
@@ -581,9 +601,13 @@ export default function App() {
             const studentCleaned = project.chapters.map(chap => { const { customPrompt, sources, ...safe } = chap; return { ...safe, sources: [] }; });
             const payload = { title: project.title, language: project.language, chapters: studentCleaned, isStudentEdition: true };
             const payloadString = JSON.stringify(payload);
+            const compressed = LZString.compressToBase64(payloadString);
             
-            if (payloadString.length > 500000) {
-                showMessage("Course is too large (contains heavy images). Please use Export for Students instead.", "error");
+            const finalPayload = { c: compressed };
+            const finalPayloadString = JSON.stringify(finalPayload);
+
+            if (finalPayloadString.length > 1000000) {
+                showMessage("Course is extremely large. Please remove some images or use Export.", "error");
                 setIsSharing(false);
                 return;
             }
@@ -591,7 +615,7 @@ export default function App() {
             const response = await fetch("https://jsonblob.com/api/jsonBlob", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                body: payloadString
+                body: finalPayloadString
             });
             if (response.ok) {
                 const location = response.headers.get("Location");
@@ -707,7 +731,7 @@ export default function App() {
     const activeChapter = project.chapters.find(c => c.id === activeView);
 
     return (
-        <div className="flex h-screen bg-slate-50 text-slate-100 font-sans overflow-hidden">
+        <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
             <style>{`
                 .rich-text-editor { color: #1e293b; font-size: 1.05rem; }
                 .rich-text-editor h1, .rich-text-editor h2, .rich-text-editor h3 { font-weight: 800; color: #0f172a; margin-top: 1.5em; margin-bottom: 0.75em; }
@@ -725,7 +749,7 @@ export default function App() {
             `}</style>
 
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-300 z-50 w-72 bg-slate-50 flex flex-col h-full border-r border-slate-200`}>
+            <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition duration-300 z-50 w-72 bg-white flex flex-col h-full border-r border-slate-200 shadow-sm`}>
                 <div className="p-5 border-b border-slate-200 flex flex-col space-y-3">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center space-x-3"><Book className="w-8 h-8 text-indigo-500" /><div><h1 className="text-lg font-black text-slate-900">Course LabX</h1><span className="text-[10px] text-slate-500 font-bold uppercase">{project.isStudentEdition ? 'Student Hub View' : 'Instructor Center'}</span></div></div>
@@ -767,12 +791,12 @@ export default function App() {
             </div>
 
             {/* Main Center Area */}
-            <div className="flex-1 flex flex-col bg-white overflow-hidden relative border-r border-slate-200">
+            <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden relative border-r border-slate-200">
                 {activeView === 'book' && !project.isStudentEdition ? (
                     <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full"><h2 className="text-2xl font-bold mb-6 flex items-center"><Settings className="w-6 h-6 mr-3 text-indigo-500" />Course Configuration</h2><div className="space-y-6"><div><label className="block text-sm font-medium text-slate-600 mb-2">Course Title</label><input type="text" value={project.title} onChange={(e) => setProject({...project, title: e.target.value})} className="w-full bg-slate-100 border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 outline-none" /></div><div><label className="block text-sm font-medium text-slate-600 mb-2">Language</label><select value={project.language} onChange={(e) => setProject({...project, language: e.target.value})} className="w-full bg-slate-100 border border-slate-300 rounded-lg p-3 text-slate-900 focus:border-indigo-500 outline-none"><option value="English">English</option><option value="Spanish">Spanish</option><option value="French">French</option><option value="German">German</option></select></div></div></div>
                 ) : activeChapter ? (
                     <div className="flex-1 flex flex-col overflow-hidden">
-                        <header className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+                        <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 shadow-sm">
                             <div className="flex items-center space-x-4"><button className="md:hidden text-slate-600" onClick={() => setIsMobileMenuOpen(true)}><Menu className="w-6 h-6" /></button>
                             {isStudentMode ? <h2 className="text-xl font-bold text-slate-900">{activeChapter.title}</h2> : (
                                 <div className="flex items-center space-x-2 group w-full max-w-md">
@@ -782,15 +806,15 @@ export default function App() {
                             )}</div>
                             <div className="flex space-x-2"><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'content' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} onClick={() => setActiveTab('content')}>Read</button><button className={`px-4 py-2 rounded-lg text-sm font-medium ${activeTab === 'quiz' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`} onClick={() => setActiveTab('quiz')}>Quiz</button></div>
                         </header>
-                        <div className="flex-1 overflow-y-auto relative bg-white">
+                        <div className="flex-1 overflow-y-auto relative bg-slate-50">
                             {activeTab === 'content' && (
                                 <div className="max-w-4xl mx-auto pb-16">
                                     <EditorToolbar isStudentMode={isStudentMode} />
                                     <div className="space-y-6 px-4 md:px-8">
                                     {activeChapter.blocks.map((block, idx) => (
-                                        <div key={block.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden group hover:border-indigo-500/30 transition-colors">
+                                        <div key={block.id} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden group hover:border-indigo-500/30 hover:shadow-md transition-all">
                                             {!isStudentMode && (
-                                                <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="bg-slate-50/80 px-3 py-2 border-b border-slate-200 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="flex items-center space-x-2 text-slate-600"><GripVertical className="w-4 h-4 cursor-grab" /><span className="text-[10px] font-bold uppercase">TEXT BLOCK</span></div>
                                                     <div className="flex space-x-1">
                                                         <button onClick={() => moveBlock(activeChapter.id, idx, -1)} className="p-1 hover:bg-slate-100 rounded"><ArrowUp className="w-3 h-3 text-slate-600" /></button>
@@ -821,7 +845,7 @@ export default function App() {
                                     {activeChapter.mcqs.length > 0 ? (
                                         <div className="space-y-8 px-4">
                                             {activeChapter.mcqs.map((mcq, idx) => (
-                                                <div key={mcq.id} className="bg-slate-100 rounded-xl p-6 border border-slate-300 relative group">
+                                                <div key={mcq.id} className="bg-white rounded-xl shadow-sm p-6 border border-slate-200 relative group">
                                                     {!isStudentMode && (
                                                         <button onClick={() => deleteMCQ(mcq.id)} className="absolute top-4 right-4 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100"><Trash2 className="w-5 h-5"/></button>
                                                     )}
@@ -871,10 +895,10 @@ export default function App() {
 
             {/* Right Panel / Tool Panel */}
             {activeChapter && (
-                <div className="w-80 bg-slate-50 flex flex-col border-l border-slate-200 shadow-xl flex-shrink-0 z-20">
+                <div className="w-80 bg-white flex flex-col border-l border-slate-200 shadow-sm flex-shrink-0 z-20">
                     {isStudentMode ? (
                         <div className="flex flex-col h-full">
-                            <div className="p-4 border-b border-slate-200 bg-indigo-100/20 flex items-center space-x-3"><Bot className="w-6 h-6 text-indigo-400" /><h3 className="font-bold text-indigo-100">AI Tutor Chat</h3></div>
+                            <div className="p-4 border-b border-slate-200 bg-indigo-50 flex items-center space-x-3"><Bot className="w-6 h-6 text-indigo-600" /><h3 className="font-bold text-indigo-900">AI Tutor Chat</h3></div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                                 <div className="bg-slate-100 p-3 rounded-xl rounded-tl-sm text-sm text-slate-700"><p>Hello! I am your AI Tutor for <strong>{activeChapter.title}</strong>. Ask me any questions about the material!</p></div>
                                 {(tutorChats[activeChapter.id] || []).map((msg, idx) => (
@@ -978,7 +1002,7 @@ export default function App() {
                                 </div>
                             </div>
                             <input type="password" value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} placeholder="AIzaSy..." className="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-slate-900 font-mono text-sm focus:border-indigo-500 outline-none" />
-                            {testResult && <div className={`p-3 rounded-lg text-sm border ${testResult.success ? 'bg-emerald-100/20 border-emerald-800 text-emerald-400' : 'bg-red-100/20 border-red-800 text-red-400'}`}>{testResult.msg}</div>}
+                            {testResult && <div className={`p-3 rounded-lg text-sm border ${testResult.success ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>{testResult.msg}</div>}
                             <div className="flex space-x-3 pt-2">
                                 <button onClick={handleTestApiKey} disabled={isTestingKey || !apiKeyInput.trim()} className="flex-1 py-2 px-4 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-800 font-medium rounded-lg text-sm transition-colors">{isTestingKey ? 'Testing...' : 'Test Connection'}</button>
                                 <button onClick={() => handleSaveApiKey(apiKeyInput)} className="flex-1 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-colors shadow-lg">Save Key</button>
