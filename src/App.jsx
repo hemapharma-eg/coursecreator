@@ -69,7 +69,7 @@ async function callGeminiText(promptOrParts) {
     const activeKey = getActiveApiKey();
     if (!activeKey) throw new Error("MISSING_API_KEY");
     const parts = Array.isArray(promptOrParts) ? promptOrParts : [{ text: promptOrParts }];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${activeKey}`;
     const payload = { contents: [{ parts: parts }], tools: [{ google_search: {} }] };
     const options = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
     const result = await fetchWithRetry(url, options);
@@ -80,7 +80,7 @@ async function callGeminiJSON(promptOrParts, schema) {
     const activeKey = getActiveApiKey();
     if (!activeKey) throw new Error("MISSING_API_KEY");
     const parts = Array.isArray(promptOrParts) ? promptOrParts : [{ text: promptOrParts }];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${activeKey}`;
     const payload = { contents: [{ parts: parts }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
     const options = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
     const result = await fetchWithRetry(url, options);
@@ -248,7 +248,7 @@ const EditorToolbar = ({ isStudentMode }) => {
             <button onMouseDown={e => { e.preventDefault(); insertTable(); }} className={`${btnClass} text-[10px] font-semibold`} title="Insert Table"><Type className="w-3.5 h-3.5" /></button>
             <div className="relative group">
                 <button className={`${btnClass} flex items-center text-[10px] font-semibold`} title="Table Editor">TBL ▼</button>
-                <div className="absolute hidden group-hover:flex flex-col bg-white border border-slate-200 shadow-xl rounded-lg mt-1 z-50 w-32 py-1 left-0">
+                <div className="absolute hidden group-hover:flex flex-col bg-white border border-slate-200 shadow-xl rounded-lg top-full mt-0 z-50 w-32 py-1 left-0">
                     <button onMouseDown={e => { e.preventDefault(); handleTableCmd('addRow'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Add Row Below</button>
                     <button onMouseDown={e => { e.preventDefault(); handleTableCmd('delRow'); }} className="px-3 py-1.5 text-left hover:bg-indigo-50 text-xs text-slate-700">Delete Row</button>
                     <div className="border-t border-slate-100 my-1" />
@@ -434,7 +434,7 @@ export default function App() {
     };
 
     const handleApiError = (err) => {
-        if (err.message === "RATE_LIMIT_EXCEEDED") { showMessage("AI rate limit exceeded! Wait 60 seconds.", "warning"); setIsApiKeyModalOpen(true); } 
+        if (err.message === "RATE_LIMIT_EXCEEDED") { showMessage("Rate limit reached. Google limits free-tier usage per IP address. Please wait 60 seconds.", "warning"); setIsApiKeyModalOpen(true); } 
         else if (err.message === "INVALID_API_KEY") { showMessage("Invalid API Key.", "error"); setIsApiKeyModalOpen(true); } 
         else if (err.message === "MISSING_API_KEY") { showMessage("API Key is missing.", "error"); setIsApiKeyModalOpen(true); } 
         else { showMessage(`Operation failed: ${err.message}`, "error"); }
@@ -529,7 +529,7 @@ export default function App() {
         setIsGenerating(true);
         try {
             const currentContent = activeChapter.blocks?.map(b => b.content).join('\n\n');
-            const textPrompt = `You are an elite course designer. CURRENT CONTENT:\n${currentContent || "Empty."}\nCUSTOM PROMPT:\n${activeChapter.customPrompt || "None."}\nLANGUAGE: ${project.language}\nINSTRUCTIONS:\n1. Generate an immersive educational chapter using HTML structures. Use tables, <h1>, <h2>, <h3>, <blockquote>.\n2. Output equations in HTML.\n3. Do not output markdown.\n4. Focus only on rich text.\n5. Ensure thorough coverage.`;
+            const textPrompt = `You are an elite course designer. CURRENT CONTENT:\n${currentContent || "Empty."}\nCUSTOM PROMPT:\n${activeChapter.customPrompt || "None."}\nLANGUAGE: ${project.language}\nINSTRUCTIONS:\n1. Generate an immersive educational chapter using HTML structures. Use tables, <h1>, <h2>, <h3>, <blockquote>.\n2. Output equations in HTML.\n3. Do not output markdown. Do not include <style>, <head>, or <html> tags. Only output the raw inner HTML content.\n4. Focus only on rich text.\n5. Ensure thorough coverage.`;
             const parts = [{ text: textPrompt }];
             if (sourcesToUse?.length > 0) {
                 parts.push({ text: "\n\n--- KNOWLEDGE SOURCES ---\n" });
@@ -541,7 +541,12 @@ export default function App() {
                 });
             }
             let rawOutput = await callGeminiText(parts);
-            rawOutput = rawOutput.replace(/^```html/gm, '').replace(/^```/gm, '').trim();
+            rawOutput = rawOutput
+                .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                .replace(/<\/?(?:html|head|body|script)[^>]*>/gi, '')
+                .replace(/^```html/gm, '')
+                .replace(/^```/gm, '')
+                .trim();
             const newBlocks = [{ id: `b_${Date.now()}`, type: 'html', content: rawOutput }];
             updateChapter(activeChapter.id, { blocks: newBlocks, sources: sourcesToUse });
             showMessage("Chapter generated!", "success");
@@ -966,7 +971,7 @@ export default function App() {
                                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center"><Edit3 className="w-4 h-4 mr-2 text-indigo-500" /> Course Generation</h3>
                                 <div className="space-y-4">
                                     <textarea value={activeChapter.customPrompt || ''} onChange={(e) => updateChapter(activeChapter.id, { customPrompt: e.target.value })} placeholder="Add any optional instructions here..." className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-800 outline-none h-24 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50" />
-                                    <button onClick={() => regenerateChapter(activeChapter.id, activeChapter.sources || [])} disabled={isGenerating} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center disabled:opacity-50 transition-all shadow-sm hover:shadow-md">
+                                    <button onClick={() => regenerateChapter(activeChapter.id, activeChapter.sources || [])} disabled={isGenerating || (!activeChapter.customPrompt?.trim() && (!activeChapter.sources || activeChapter.sources.length === 0))} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg text-sm flex items-center justify-center disabled:opacity-50 transition-all shadow-sm hover:shadow-md">
                                         {isGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Synthesizing...</> : <><Sparkles className="w-4 h-4 mr-2" /> Generate Chapter Content</>}
                                     </button>
                                 </div>
