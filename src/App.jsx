@@ -293,9 +293,6 @@ export default function App() {
     const [confirmModal, setConfirmModal] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
-    const [isSharing, setIsSharing] = useState(false);
-    const [shareUrl, setShareUrl] = useState(null);
-
     const [apiKeyInput, setApiKeyInput] = useState(localStorage.getItem('user_gemini_api_key') || '');
     const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
     const [isTestingKey, setIsTestingKey] = useState(false);
@@ -600,53 +597,7 @@ export default function App() {
         link.download = `${project.title.replace(/\s+/g, '_')}_student.json`; link.click();
     };
 
-    const handleCreateShareLink = async () => {
-        setIsSharing(true);
-        try {
-            const studentCleaned = project.chapters.map(chap => {
-                const { customPrompt, sources, ...safe } = chap;
-                const lightBlocks = (safe.blocks || []).map(b => ({
-                    ...b,
-                    content: (b.content || '').replace(/<img[^>]*src="data:image\/[^"]*"[^>]*>/gi, '<p style="color:#6366f1;font-style:italic">[Image removed for link sharing — use Export for full version]</p>')
-                }));
-                return { ...safe, blocks: lightBlocks, sources: [] };
-            });
-            const payload = { title: project.title, language: project.language, chapters: studentCleaned, isStudentEdition: true };
-            const payloadString = JSON.stringify(payload);
-            const compressed = LZString.compressToBase64(payloadString);
-            
-            const finalPayload = { c: compressed };
-            const finalPayloadString = JSON.stringify(finalPayload);
 
-            if (finalPayloadString.length > 1000000) {
-                showMessage("Course is still too large even after removing images. Please reduce text content or use Export.", "error");
-                setIsSharing(false);
-                return;
-            }
-
-            const response = await fetch("https://jsonblob.com/api/jsonBlob", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Accept": "application/json" },
-                body: finalPayloadString
-            });
-            if (response.ok) {
-                const location = response.headers.get("Location");
-                const id = location ? location.split('/').pop() : response.headers.get("x-jsonblob-id");
-                if (id) {
-                    const link = `${window.location.origin}${window.location.pathname}?course=${id}`;
-                    setShareUrl(link);
-                } else {
-                    showMessage("Failed to retrieve share ID.", "error");
-                }
-            } else {
-                showMessage("Failed to create share link. Server rejected the request.", "error");
-            }
-        } catch (e) {
-            console.error(e);
-            showMessage("Network error during sharing.", "error");
-        }
-        setIsSharing(false);
-    };
 
     const updateMCQ = (mcqId, field, value) => {
         const activeChap = project.chapters.find(c => c.id === activeView);
@@ -782,7 +733,6 @@ export default function App() {
                         <div className="grid grid-cols-1 gap-1.5 pt-1">
                             <button onClick={exportInstructorJSON} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 transition-colors"><Download className="w-3.5 h-3.5 text-indigo-400" /><span className="font-medium">Save Backup (Teacher)</span></button>
                             <button onClick={exportStudentJSON} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 transition-colors"><Download className="w-3.5 h-3.5 text-indigo-400" /><span className="font-medium">Export for Students</span></button>
-                            <button onClick={handleCreateShareLink} disabled={isSharing} className="flex items-center space-x-2 text-[11px] text-slate-700 p-2 rounded-lg bg-slate-50 hover:bg-indigo-50/50 border border-slate-200 hover:border-indigo-200 transition-colors"><ExternalLink className="w-3.5 h-3.5 text-indigo-400" /><span className="font-medium">{isSharing ? 'Generating...' : 'Create Share Link'}</span></button>
                         </div>
                     )}
                 </div>
@@ -1027,23 +977,6 @@ export default function App() {
                 </div>
             )}
 
-            {/* Share Link Modal */}
-            {shareUrl && (
-                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                    <div className="bg-white border border-slate-300 p-6 rounded-2xl max-w-lg w-full shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold flex items-center"><ExternalLink className="w-5 h-5 mr-2 text-emerald-400" />Student Link Created!</h3>
-                            <button onClick={() => setShareUrl(null)} className="text-slate-600 hover:text-slate-900"><X className="w-5 h-5" /></button>
-                        </div>
-                        <p className="text-slate-700 mb-4 text-sm">Share this secure link with your students. They can open it directly in their browser without downloading any files!</p>
-                        <input type="text" readOnly value={shareUrl} className="w-full bg-slate-50 border border-slate-300 rounded-lg p-3 text-emerald-400 font-mono text-sm mb-6 focus:outline-none focus:border-emerald-500" />
-                        <div className="flex space-x-3">
-                            <button onClick={() => { navigator.clipboard.writeText(shareUrl); showMessage("Copied to clipboard!", "success"); }} className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors shadow-lg flex items-center justify-center">Copy Link</button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Confirm Modal */}
             {confirmModal && (
