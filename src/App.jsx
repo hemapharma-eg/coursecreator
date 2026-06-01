@@ -861,9 +861,20 @@ export default function App() {
                         </div>
                         
                         <div className="space-y-4">
-                            <p className="text-sm text-slate-400">
-                                Provide your Google Gemini API key to enable AI generation features. Your key is stored locally in your browser.
-                            </p>
+                            <div className="text-sm text-slate-400 space-y-3">
+                                <p>
+                                    This app runs using Gemini's highly optimized models. Both professors and students can use their own <strong>completely free</strong> API Keys without requiring paid, premium accounts.
+                                </p>
+                                <div>
+                                    <h4 className="font-bold text-slate-300 mb-1">How to retrieve your Free Key</h4>
+                                    <ol className="list-decimal pl-4 space-y-1 text-slate-400">
+                                        <li>Visit the <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">Google AI Studio Dashboard</a>.</li>
+                                        <li>Log in with any normal, free Google email address.</li>
+                                        <li>Click the prominent "Get API Key" button on the upper left.</li>
+                                        <li>Click "Create API Key", copy it, and paste it in the field below!</li>
+                                    </ol>
+                                </div>
+                            </div>
                             
                             <input
                                 type="password"
